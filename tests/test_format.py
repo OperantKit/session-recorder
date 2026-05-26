@@ -329,7 +329,7 @@ def test_parse_header_rejects_missing_required_key() -> None:
 @pytest.mark.unit
 def test_parse_header_rejects_wrong_magic() -> None:
     with pytest.raises(ValueError, match="OKL v1"):
-        parse_header(["# OSL v9", HEADER_TERMINATOR])
+        parse_header(["# OKL v9", HEADER_TERMINATOR])
 
 
 @pytest.mark.unit

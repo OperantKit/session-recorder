@@ -12,7 +12,7 @@ TypeScript / ...）はこのスキーマにバイト単位で従うこと。
 
 - **ベンチ研究者** — 実験中に Notepad / `less` / `grep` で開く
 - **パイプライン開発者** — Python / Rust の reader を書く
-  （`session-analyzer`, `aba-advisor`, `behavior-scope` ほか）
+  （`session-analyzer`, `aba-advisor`, `session-visualizer` ほか）
 - **HIL ベンチエンジニア** — ms 解像度の event を hot path で append。
   クラッシュ後の torn-write を検知できる必要がある
 

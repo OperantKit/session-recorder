@@ -15,7 +15,7 @@ one file:
 - **Bench researchers** opening output in Notepad / `less` / `grep`
   during a wet-lab run.
 - **Pipeline authors** writing Python / Rust readers for downstream
-  analysis (`session-analyzer`, `aba-advisor`, `behavior-scope`, ...).
+  analysis (`session-analyzer`, `aba-advisor`, `session-visualizer`, ...).
 - **HIL benchmark engineers** appending ms-resolution events from a hot
   path with crash-safe semantics.
 

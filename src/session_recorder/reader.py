@@ -2,9 +2,9 @@
 
 The reader is the canonical inverse of
 :class:`session_recorder.sink.OklSink`. Downstream packages
-(``session-analyzer``, ``aba-advisor``, ``behavior-scope``, ...) consume
-session data through these helpers rather than re-parsing OKL v1 by
-hand.
+(``session-analyzer``, ``aba-advisor``, ``session-visualizer``, ...)
+consume session data through these helpers rather than re-parsing OKL
+v1 by hand.
 
 The default policy for unknown event types is ``"warn"``: a warning is
 emitted once per type and the offending records are skipped. Set
