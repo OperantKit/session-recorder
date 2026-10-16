@@ -1,0 +1,39 @@
+# session-recorder
+
+> Writer and reader for OKL v1, a plain-text, tab-separated log format for operant session events (responses, reinforcer start and end, state changes, phase markers) with a self-describing header and codebook.
+
+session-recorder is part of OperantKit, a set of Python/Rust packages for designing and running operant and respondent conditioning experiments (reinforcement schedules, session recording, analysis). Use it instead of a hand-written CSV or JSON logger: the file carries the session metadata and the type of every column, reads back into typed event objects, and follows a written specification with conformance files.
+
+## Install
+
+```bash
+pip install session-recorder
+```
+
+## Minimal example
+
+```python
+from experiment_core import ResponseEvent
+from session_recorder import OklSink, read_log
+
+sink = OklSink("demo.okl")
+sink.write_header(session_name="demo", clock_type="VirtualClock", session_start=0.0, metadata={"dsl": "FR 3"})
+sink.emit(ResponseEvent(id=1, timestamp=0.5))
+log = read_log("demo.okl")
+print(log.meta.session_name, log.events)  # demo [ResponseEvent(id=1, timestamp=0.5, operandum=None)]
+```
+
+`OklSink` implements the `experiment_core.EventSink` protocol, so it can be passed as the `sink` of a session-runner `SessionRunner`.
+
+## Docs
+
+- [README](https://github.com/OperantKit/session-recorder/blob/main/README.md): role, 30-second example, why not to hand-roll a logger, quick start
+- [AGENTS.md](https://github.com/OperantKit/session-recorder/blob/main/AGENTS.md): when to use this package and what not to do
+- [Format reference](https://github.com/OperantKit/session-recorder/blob/main/docs/en/format.md): OKL v1 schema as implemented here
+
+## Related packages
+
+- [OperantKitLog](https://github.com/OperantKit/OperantKitLog): the OKL v1 specification (grammar, header, codebook, wire format, conformance files)
+- [experiment-core](https://github.com/OperantKit/experiment-core): the event types that are written and read (`pip install experiment-core`)
+- [session-runner](https://github.com/OperantKit/session-runner): drives a session and forwards its events to `OklSink` (`pip install session-runner`)
+- [session-analyzer](https://github.com/OperantKit/session-analyzer): cumulative records and statistics from OKL v1 logs (`pip install session-analyzer`)
