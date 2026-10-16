@@ -17,3 +17,6 @@ tmp/
 *.py[cod]
 htmlcov/
 PLAN.md
+
+# hatch-vcs generated
+src/session_recorder/_version.py

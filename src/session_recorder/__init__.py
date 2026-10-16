@@ -52,7 +52,10 @@ from .reader import (
 )
 from .sink import OklSink
 
-__version__ = "0.0.0"
+try:
+    from session_recorder._version import __version__
+except ImportError:
+    __version__ = "0.0.0+unknown"
 __all__ = [
     "CANONICAL_CODEBOOK",
     "EVENT_TYPE_COMPONENT_CHANGE",

@@ -20,7 +20,7 @@ format**（[OKL v1 スキーマ](docs/ja/format.md)）と、その Python
 | HAL Protocol + ハードウェア駆動 | `experiment-io` |
 | DSL パース | `contingency-dsl-py` |
 | スケジュールランタイム | `contingency-py` |
-| エンドツーエンド CLI glue | `operant-cli` |
+| エンドツーエンド CLI glue | `operantkit-cli` |
 
 ## 責務
 
@@ -38,6 +38,12 @@ format**（[OKL v1 スキーマ](docs/ja/format.md)）と、その Python
   これにバイト単位で従うこと。
 
 ## インストール
+
+```bash
+pip install session-recorder
+```
+
+開発用:
 
 ```bash
 mise exec -- python -m venv .venv

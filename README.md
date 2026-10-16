@@ -20,7 +20,7 @@ elsewhere:
 | HAL Protocols + driving from hardware | `experiment-io` |
 | DSL parsing | `contingency-dsl-py` |
 | Schedule runtime | `contingency-py` |
-| End-to-end CLI glue | `operant-cli` |
+| End-to-end CLI glue | `operantkit-cli` |
 
 ## Responsibilities
 
@@ -38,6 +38,12 @@ elsewhere:
   should match this byte-for-byte.
 
 ## Installation
+
+```bash
+pip install session-recorder
+```
+
+For development:
 
 ```bash
 mise exec -- python -m venv .venv
