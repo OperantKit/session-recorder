@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+title: "session-recorder"
+authors:
+  - name: "OperantKit contributors"
+repository-code: "https://github.com/OperantKit/session-recorder"
+license: MIT
+abstract: "OKL v1 (OperantKitLog v1) writer/reader for OperantKit session events. Implements the wire format specified in OperantKitLog/spec/."
