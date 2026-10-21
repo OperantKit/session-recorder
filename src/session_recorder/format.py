@@ -539,12 +539,24 @@ def _encode_value(value: Any, field: Field) -> str:
     raise ValueError(f"unknown field type: {field.ty}")
 
 
-def _encode_line(timestamp: float, type_name: str, args: dict[str, Any]) -> str:
-    fields = CANONICAL_CODEBOOK[type_name]
+def encode_record(
+    timestamp: float,
+    type_name: str,
+    args: dict[str, Any],
+    codebook: dict[str, tuple[Field, ...]] | None = None,
+) -> str:
+    """Encode one body line of any type declared in ``codebook``
+    (defaults to :data:`CANONICAL_CODEBOOK`). Use this for extension
+    types that have no :class:`SessionEvent` counterpart."""
+    fields = (codebook or CANONICAL_CODEBOOK)[type_name]
     cols = [repr(float(timestamp)), type_name]
     for f in fields:
         cols.append(_encode_value(args.get(f.name), f))
     return "\t".join(cols)
+
+
+def _encode_line(timestamp: float, type_name: str, args: dict[str, Any]) -> str:
+    return encode_record(timestamp, type_name, args)
 
 
 def encode_event(event: SessionEvent) -> str:

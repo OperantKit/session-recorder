@@ -33,6 +33,9 @@ elsewhere:
 - **Format module** (`session_recorder.format`) — the source-of-truth
   serialiser/deserialiser between `experiment_core.SessionEvent` and
   the OKL v1 wire format.
+- **MED-PC importer** (`session_recorder.medpc`) — reads MED-PC IV / V
+  data files (FORMAT 1 Annotated, FORMAT 4 Stripped with Variable
+  Identification) and writes them as OKL v1 logs.
 - **Format docs** ([`docs/en/format.md`](docs/en/format.md)) —
   language-agnostic schema reference. Future Rust / TypeScript readers
   should match this byte-for-byte.
@@ -135,6 +138,46 @@ it without preprocessing:
 column -t -s $'\t' < session.txt
 grep '^[0-9]' session.txt | awk -F'\t' '$2=="response"' | wc -l
 ```
+
+### Importing MED-PC data
+
+```python
+from pathlib import Path
+
+from session_recorder import read_log
+from session_recorder.medpc import medpc_to_okl, read_medpc
+
+Path("JL4.txt").write_text(  # a MED-PC FORMAT 1 (Annotated) file
+    "Start Date: 08/19/24\nEnd Date: 08/19/24\nSubject: JL4\nExperiment: VDRL\n"
+    "Group: 1\nBox: 4\nStart Time:  9:51:02\nEnd Time: 11:08:00\nMSN: Training\n"
+    "A:\n     0:  0.000  270000.000  60.000  3.000  30.000\n"
+    "C:\n     0:  0.111  2742.200  5763.400  27000.999\n"
+)
+for i, session in enumerate(read_medpc("JL4.txt")):
+    result = medpc_to_okl(session, f"session_{i}.txt")  # protocol guessed from MSN
+    assert result.primary + sum(result.unmapped.values()) == result.source_events
+
+log = read_log("session_0.txt")
+print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.events])
+# VI 30s ['StateChangeEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'StateChangeEvent']
+```
+
+A MED-PC file does not say what its event codes mean; the MSN program
+does. `medpc_to_okl` therefore takes a `protocol` naming one of
+`session_recorder.medpc.PROTOCOLS`. Built-in protocols cover three
+public datasets whose programs are published (`bernardy-vdrl`,
+`bernardy-training`, `sosa-inh`, `mccutcheon-prpr`); annotated files are
+matched by their `MSN:` line, FORMAT 4 files need `protocol=` because
+they carry no MSN name. To read another program, write a function that
+turns a `MedPcSession` into a `Converted` and register it as a
+`Protocol`.
+
+Each source event becomes one body line or is counted as unmapped
+(`medpc.unmapped_codes` in the header); lines the converter adds, such
+as a session start the file does not record, are counted in
+`medpc.synthesised_lines`. Food-cup entries and exits are written as the
+extension types `head_entry` / `head_exit`; `read_log` keeps them in
+`raw_records` and leaves them out of `events`.
 
 ## Development
 

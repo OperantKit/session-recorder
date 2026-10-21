@@ -23,6 +23,7 @@ from typing import Any, Literal
 from experiment_core import SessionEvent, SessionMeta
 
 from .format import (
+    CANONICAL_CODEBOOK,
     EVENT_TYPE_PHASE_ENTER,
     EVENT_TYPE_PHASE_EXIT,
     Field,
@@ -67,11 +68,12 @@ class SessionLog:
         The parsed header. Always present in OKL v1.
     events:
         Every :class:`~experiment_core.events.SessionEvent` in emission
-        order.
+        order. Records of extension types (declared in the codebook but
+        not canonical) are not included.
     raw_records:
         Every body record (excluding phase markers and unknown skipped
         records) as a :class:`~session_recorder.format.ParsedRecord`,
-        in emission order.
+        in emission order, including extension types.
     phase_markers:
         Every ``phase_enter`` / ``phase_exit`` record in emission
         order.
@@ -224,7 +226,11 @@ def read_log(
             )
         else:
             raw_records.append(rec)
-            events.append(materialise(rec))
+            # Types declared in the codebook but outside the canonical set
+            # ("extras are permitted") have no SessionEvent counterpart;
+            # they stay available through ``raw_records`` only.
+            if rec.type in CANONICAL_CODEBOOK:
+                events.append(materialise(rec))
 
     meta = header.session_meta()
     return SessionLog(

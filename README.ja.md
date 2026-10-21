@@ -33,6 +33,9 @@ format**（[OKL v1 スキーマ](docs/ja/format.md)）と、その Python
 - **Format モジュール**（`session_recorder.format`） —
   `experiment_core.SessionEvent` と OKL v1 wire format 間の正典
   シリアライザ / デシリアライザ。
+- **MED-PC 取り込み**（`session_recorder.medpc`） — MED-PC IV / V の
+  データファイル（FORMAT 1 Annotated、FORMAT 4 Stripped with Variable
+  Identification）を読み、OKL v1 ログとして書き出す。
 - **Format ドキュメント**（[`docs/en/format.md`](docs/en/format.md)） —
   言語非依存のスキーマリファレンス。将来の Rust / TypeScript reader は
   これにバイト単位で従うこと。
@@ -135,6 +138,41 @@ for event in log.events:
 column -t -s $'\t' < session.txt
 grep '^[0-9]' session.txt | awk -F'\t' '$2=="response"' | wc -l
 ```
+
+### MED-PC データの取り込み
+
+```python
+from pathlib import Path
+
+from session_recorder import read_log
+from session_recorder.medpc import medpc_to_okl, read_medpc
+
+Path("JL4.txt").write_text(  # a MED-PC FORMAT 1 (Annotated) file
+    "Start Date: 08/19/24\nEnd Date: 08/19/24\nSubject: JL4\nExperiment: VDRL\n"
+    "Group: 1\nBox: 4\nStart Time:  9:51:02\nEnd Time: 11:08:00\nMSN: Training\n"
+    "A:\n     0:  0.000  270000.000  60.000  3.000  30.000\n"
+    "C:\n     0:  0.111  2742.200  5763.400  27000.999\n"
+)
+for i, session in enumerate(read_medpc("JL4.txt")):
+    result = medpc_to_okl(session, f"session_{i}.txt")  # protocol は MSN から推定
+    assert result.primary + sum(result.unmapped.values()) == result.source_events
+
+log = read_log("session_0.txt")
+print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.events])
+# VI 30s ['StateChangeEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'StateChangeEvent']
+```
+
+MED-PC のファイル自体はイベントコードの意味を持たず、意味は MSN プログラムが決める。
+そのため `medpc_to_okl` は `session_recorder.medpc.PROTOCOLS` のどれかを `protocol` で受け取る。
+組み込みの protocol は、プログラムが公開されている 3 つの公開データセット用
+（`bernardy-vdrl`、`bernardy-training`、`sosa-inh`、`mccutcheon-prpr`）。
+注釈付きファイルは `MSN:` 行から推定し、FORMAT 4 は MSN 名を持たないので `protocol=` が要る。
+別のプログラムを読むには、`MedPcSession` を `Converted` に変える関数を書いて `Protocol` として登録する。
+
+元ファイルの各イベントは本文 1 行になるか、未対応として数える（ヘッダの `medpc.unmapped_codes`）。
+ファイルに記録の無いセッション開始など、変換器が足した行は `medpc.synthesised_lines` に数える。
+餌皿への出入りは拡張型 `head_entry` / `head_exit` で書く。`read_log` はこれらを
+`raw_records` に入れ、`events` には入れない。
 
 ## 開発
 

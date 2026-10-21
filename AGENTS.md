@@ -17,6 +17,7 @@ Events normally come from session-runner (`SessionRunner(config, sink=OklSink(pa
 - String columns escape tabs, newlines, and backslashes; absent optional values are written as `-`, so every line has a fixed number of columns.
 - `OklSink` writes the header exactly once at byte 0 and refuses events before the header.
 - The format is specified in the OperantKitLog repository, and the tests parse its valid and invalid conformance files.
+- `session_recorder.medpc` converts MED-PC IV / V data files (FORMAT 1 Annotated, FORMAT 4 Stripped with Variable Identification) to OKL v1, given a protocol that names what each event code means; it checks that every source event is written or counted as unmapped.
 
 ## Do not
 

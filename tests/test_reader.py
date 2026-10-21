@@ -175,3 +175,27 @@ def test_torn_write_last_line_is_discarded(tmp_log: Path) -> None:
 def test_invalid_on_unknown_value_raises() -> None:
     with pytest.raises(ValueError, match="on_unknown"):
         list(iter_records("/nonexistent", on_unknown="bogus"))  # type: ignore[arg-type]
+
+
+@pytest.mark.unit
+def test_read_log_keeps_declared_extension_types_out_of_events(tmp_log: Path) -> None:
+    """A type declared in the codebook but outside the canonical set is
+    kept in ``raw_records`` and does not break ``read_log``."""
+    from session_recorder.format import CANONICAL_CODEBOOK, Field, write_header
+
+    codebook = {**CANONICAL_CODEBOOK, "head_entry": (Field("id", "int", False),)}
+    with tmp_log.open("w", encoding="utf-8", newline="") as f:
+        write_header(
+            f, session_name="ext", clock_type="MED-PC", session_start=0.0, codebook=codebook
+        )
+        f.write("0.5\tresponse\t1\t0\n")
+        f.write("1.0\thead_entry\t1\n")
+        f.write("1.5\tresponse\t2\t0\n")
+
+    log = read_log(tmp_log, on_unknown="error")
+    assert log.events == [
+        ResponseEvent(id=1, timestamp=0.5, operandum=0),
+        ResponseEvent(id=2, timestamp=1.5, operandum=0),
+    ]
+    assert [r.type for r in log.raw_records] == ["response", "head_entry", "response"]
+    assert log.raw_records[1].args == {"id": 1}
