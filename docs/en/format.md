@@ -96,7 +96,7 @@ are permitted):
 
 ```
 # events:
-#   response          : id:int
+#   response          : id:int operandum:int?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -151,7 +151,7 @@ smuggle non-canonical encodings.
 # meta:
 #   dsl = "FR3"
 # events:
-#   response          : id:int
+#   response          : id:int operandum:int?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -160,9 +160,9 @@ smuggle non-canonical encodings.
 #   phase_exit        : label:str
 # ---
 0.0	state_change	IDLE	RUNNING
-0.523	response	1
-1.014	response	2
-1.502	response	3
+0.523	response	1	0
+1.014	response	2	0
+1.502	response	3	0
 1.502	reinforcer_start	1	1.0	0
 2.002	reinforcer_end	1	0
 ```
