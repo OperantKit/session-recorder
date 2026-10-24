@@ -12,14 +12,18 @@ The log format is called OKL (OperantKitLog). Its specification is in the [Opera
 
 ## Installation
 
-Python 3.11 or newer. session-recorder is not on PyPI yet, so `pip install session-recorder` does not work today. Install it and the OperantKit packages it needs from GitHub without dependency resolution:
+
+Python 3.11 or newer. session-recorder is not on PyPI yet. Install it from GitHub together with the OperantKit packages it needs:
 
 ```bash
-G=git+https://github.com/OperantKit
-pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
+# Until the PyPI release, install from GitHub together with its OperantKit dependencies.
+pip install git+https://github.com/OperantKit/contingency-dsl-py \
+            git+https://github.com/OperantKit/contingency-py \
+            git+https://github.com/OperantKit/experiment-core \
+            git+https://github.com/OperantKit/session-recorder
 ```
 
-No third-party libraries are needed. `pip check` reports version mismatches between these development builds; they do not affect the examples below.
+No third-party libraries are needed. pip resolves the dependencies between them, and `pip check` reports nothing.
 
 ## Example
 

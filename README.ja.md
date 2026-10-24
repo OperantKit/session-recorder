@@ -12,14 +12,18 @@ session-recorder は、オペラント実験のセッションで起きた出来
 
 ## インストール
 
-Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていないため、`pip install session-recorder` は今のところ使えません。session-recorder と、それが必要とする OperantKit のパッケージを、依存の解決をせずに GitHub から入れてください。
+
+Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていません。session-recorder と、それが必要とする OperantKit のパッケージを一緒に GitHub から入れます。
 
 ```bash
-G=git+https://github.com/OperantKit
-pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
+# PyPI に公開されるまでは、OperantKit の依存と一緒に GitHub から入れる。
+pip install git+https://github.com/OperantKit/contingency-dsl-py \
+            git+https://github.com/OperantKit/contingency-py \
+            git+https://github.com/OperantKit/experiment-core \
+            git+https://github.com/OperantKit/session-recorder
 ```
 
-外部ライブラリは必要ありません。`pip check` はこれらの開発版どうしのバージョンの食い違いを報告しますが、以下の例の動作には影響しません。
+外部ライブラリは必要ありません。依存は pip が解決するので、`pip check` は何も報告しません。
 
 ## 例
 
