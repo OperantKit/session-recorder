@@ -2,69 +2,34 @@
 
 :jp: [日本語版 README](README.ja.md)
 
-OKL v1 event format definition + writer/reader for OperantKit session
-events.
+session-recorder saves the events of an operant session (responses, reinforcer deliveries, state changes, phases) to a plain-text log file and reads such files back into Python. It is for anyone who runs sessions with [OperantKit](https://github.com/OperantKit) and wants a session record that people and programs can both read. In OperantKit it sits between the program that runs a session ([session-runner](https://github.com/OperantKit/session-runner)) and the analysis ([session-analyzer](https://github.com/OperantKit/session-analyzer)).
 
-## Role
+- **One file per session that you can read in a text editor.** A short header, then one tab-separated line per event.
+- **The file describes itself.** The header names the session, the clock, any notes, and declares every event type with typed columns.
+- **Old MED-PC data can join in.** MED-PC IV / V data files convert to the same format.
 
-`session-recorder` owns the canonical **wire format** for session
-event persistence (the [OKL v1 schema](docs/en/format.md)), and a
-Python **writer** + **reader** for that format. It does **not** drive
-sessions, poll hardware, or parse a DSL — those concerns live
-elsewhere:
-
-| Concern | Package |
-|---|---|
-| Session lifecycle (events) | `experiment-core` |
-| Driving a session (manual API) | `session-runner` |
-| HAL Protocols + driving from hardware | `experiment-io` |
-| DSL parsing | `contingency-dsl-py` |
-| Schedule runtime | `contingency-py` |
-| End-to-end CLI glue | `operantkit-cli` |
-
-## Responsibilities
-
-- **`OklSink`** — implements the
-  `experiment_core.EventSink` Protocol; writes the OKL v1 header
-  exactly once and then appends one TSV body line per emitted event.
-- **`read_log` / `iter_records`** — read OKL v1 logs back into typed
-  Python objects, with configurable handling of unknown event types
-  (`on_unknown="warn" | "skip" | "error"`).
-- **Format module** (`session_recorder.format`) — the source-of-truth
-  serialiser/deserialiser between `experiment_core.SessionEvent` and
-  the OKL v1 wire format.
-- **MED-PC importer** (`session_recorder.medpc`) — reads MED-PC IV / V
-  data files (FORMAT 1 Annotated, FORMAT 4 Stripped with Variable
-  Identification) and writes them as OKL v1 logs.
-- **Format docs** ([`docs/en/format.md`](docs/en/format.md)) —
-  language-agnostic schema reference. Future Rust / TypeScript readers
-  should match this byte-for-byte.
+The log format is called OKL (OperantKitLog). Its specification is in the [OperantKitLog](https://github.com/OperantKit/OperantKitLog) repository; notes for AI coding agents are in [AGENTS.md](AGENTS.md).
 
 ## Installation
 
-```bash
-pip install session-recorder
-```
-
-For development:
+Python 3.11 or newer. session-recorder is not on PyPI yet, so `pip install session-recorder` does not work today. Install it and the OperantKit packages it needs from GitHub without dependency resolution:
 
 ```bash
-mise exec -- python -m venv .venv
-mise exec -- .venv/bin/python -m pip install -e ../experiment-core
-mise exec -- .venv/bin/python -m pip install -e '.[dev]'
+G=git+https://github.com/OperantKit
+pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
 ```
 
-`experiment-core` is path-installed to resolve the local dependency.
+No third-party libraries are needed. `pip check` reports version mismatches between these development builds; they do not affect the examples below.
 
-## 30-second example
+## Example
 
-Write a short FR 3 session to an OKL v1 file and read it back as typed events:
+Write a short FR 3 session (one reinforcer after the third response) to a log file and read it back:
 
 ```python
 from experiment_core import ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent
 from session_recorder import OklSink, read_log
 
-sink = OklSink("fr3.okl")
+sink = OklSink("fr3.txt")
 sink.write_header(session_name="demo", clock_type="VirtualClock", session_start=0.0,
                   metadata={"dsl": "FR 3"})
 for i, t in enumerate([1.0, 2.0, 3.0], start=1):
@@ -72,74 +37,55 @@ for i, t in enumerate([1.0, 2.0, 3.0], start=1):
 sink.emit(ReinforcerStartEvent(id=1, timestamp=3.0))
 sink.emit(ReinforcerEndEvent(id=1, timestamp=6.0))  # 3-s reinforcer access
 
-print(open("fr3.okl", encoding="utf-8").read().split("# ---\n")[1], end="")
-# 1.0	response	1	-
-# 2.0	response	2	-
-# 3.0	response	3	-
-# 3.0	reinforcer_start	1	1.0	-
-# 6.0	reinforcer_end	1	-
-
-log = read_log("fr3.okl")
-print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.events][-2:])
-# demo {'dsl': 'FR 3'} ['ReinforcerStartEvent', 'ReinforcerEndEvent']
+log = read_log("fr3.txt")
+print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.events])
+# demo {'dsl': 'FR 3'} ['ResponseEvent', 'ResponseEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'ReinforcerEndEvent']
 ```
 
-The file starts with a commented header (session name, clock, metadata, and a codebook that declares each event type and its columns) followed by one tab-separated line per event, so `grep` and `awk` work on it directly. In a real session the events come from [session-runner](https://github.com/OperantKit/session-runner) (`pip install session-runner`): pass `OklSink` as its `sink`, or combine it with other sinks through `tee`.
+The file `fr3.txt` it writes:
 
-## Why not a 50-line hand-written logger?
-
-A CSV writer or `json.dumps` per event loses what makes a session log reusable:
-
-- **Self-describing files.** The header carries the session name, clock type, start time, free-form metadata (for example the DSL source), and a codebook of event types with typed columns; a reader does not need this package to interpret the body.
-- **Round trip to typed events.** `read_log` / `iter_records` turn each line back into the `experiment_core` event classes (`ResponseEvent`, `ReinforcerStartEvent`, ...), including the operandum and reinforcer potency.
-- **Unknown events are handled explicitly.** Event types not in the codebook are warned about, skipped, or raised as errors (`on_unknown="warn" | "skip" | "error"`) instead of being misparsed.
-- **Escaping and absent values.** Tabs, newlines, and backslashes in string columns are escaped, and a missing optional value is written as `-`, so every line has a fixed number of columns.
-- **Header written once, at byte 0.** `OklSink` refuses to write a second header or to prepend a header to a non-empty file, and refuses events before the header.
-- **Phase markers.** `write_phase_enter` / `write_phase_exit` label baseline, extinction, and test phases inside one log.
-- **Specified format.** The format is defined in [OperantKitLog](https://github.com/OperantKit/OperantKitLog) (grammar, header, codebook, wire format) with 10 valid and invalid conformance files that this package's tests parse.
-
-## Quick start
-
-### Writing
-
-```python
-from session_recorder import OklSink
-from experiment_core import ResponseEvent
-
-sink = OklSink("session.txt")
-sink.write_header(
-    session_name="demo",
-    clock_type="ManualClock",
-    session_start=0.0,
-    metadata={"dsl": "FR3"},
-)
-sink.emit(ResponseEvent(id=1, timestamp=0.5))
+```text
+# OKL v1
+# session_name = "demo"
+# clock_type = "VirtualClock"
+# session_start = 0.0
+# meta:
+#   dsl = "FR 3"
+# events:
+#   response          : id:int operandum:int?
+#   reinforcer_start  : id:int potency:float operandum:int?
+#   reinforcer_end    : id:int operandum:int?
+#   state_change      : from:str to:str
+#   component_change  : from:str to:str
+#   phase_enter       : label:str name:str? time:str? location:str? cue:str?
+#   phase_exit        : label:str
+# ---
+1.0	response	1	-
+2.0	response	2	-
+3.0	response	3	-
+3.0	reinforcer_start	1	1.0	-
+6.0	reinforcer_end	1	-
 ```
 
-`OklSink` satisfies the `experiment_core.EventSink` Protocol so it
-can be handed to any producer that emits session events (e.g. a
-`session-runner.SessionRunner`).
-
-### Reading
-
-```python
-from session_recorder import read_log
-
-log = read_log("session.txt")
-print(log.meta.session_name)
-for event in log.events:
-    print(event)
-```
-
-`session.txt` is plain UTF-8; `less`, `grep`, `awk` and Notepad open
-it without preprocessing:
+Each body line is a time in seconds, the event type, and the columns the header declares for it; `-` marks an empty optional column (here, no operandum, the lever or key the response was made on). Standard tools work on it directly:
 
 ```bash
-column -t -s $'\t' < session.txt
-grep '^[0-9]' session.txt | awk -F'\t' '$2=="response"' | wc -l
+grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3
 ```
 
-### Importing MED-PC data
+In a real session the events come from [session-runner](https://github.com/OperantKit/session-runner): pass an `OklSink` as its `sink`.
+
+## What is inside
+
+- **`OklSink`** writes the header once, at the start of an empty file, then one line per event. It refuses a second header and events before the header. `write_phase_enter` / `write_phase_exit` mark baseline, extinction, or test phases inside one log. It implements the `EventSink` protocol of [experiment-core](https://github.com/OperantKit/experiment-core), so any OperantKit program that emits session events can write through it.
+- **`read_log` / `iter_records`** read a log back as typed `experiment_core` events. Event types missing from the header are warned about, skipped, or raised as errors (`on_unknown="warn" | "skip" | "error"`).
+- **`session_recorder.format`** is the source-of-truth serialiser between `experiment_core.SessionEvent` and the OKL v1 wire format.
+- **`session_recorder.medpc`** converts MED-PC IV / V data files (FORMAT 1 Annotated, FORMAT 4 Stripped with Variable Identification) to OKL logs.
+- **[Format reference](docs/en/format.md):** session-recorder owns the canonical wire format for session event persistence; this page is its language-agnostic schema reference.
+
+### Converting MED-PC data
+
+A MED-PC data file does not say what its event codes mean; the MSN program that wrote it does. `medpc_to_okl` therefore takes a protocol, one of `session_recorder.medpc.PROTOCOLS`. The four built-in protocols (`bernardy-vdrl`, `bernardy-training`, `sosa-inh`, `mccutcheon-prpr`) cover the published programs of three public datasets (Bernardy, 2025; McCutcheon, 2022; Sosa et al., 2026). Annotated files are matched to a protocol by their `MSN:` line; FORMAT 4 files carry no program name and need `protocol=`.
 
 ```python
 from pathlib import Path
@@ -162,37 +108,30 @@ print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.eve
 # VI 30s ['StateChangeEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'StateChangeEvent']
 ```
 
-A MED-PC file does not say what its event codes mean; the MSN program
-does. `medpc_to_okl` therefore takes a `protocol` naming one of
-`session_recorder.medpc.PROTOCOLS`. Built-in protocols cover three
-public datasets whose programs are published (`bernardy-vdrl`,
-`bernardy-training`, `sosa-inh`, `mccutcheon-prpr`); annotated files are
-matched by their `MSN:` line, FORMAT 4 files need `protocol=` because
-they carry no MSN name. To read another program, write a function that
-turns a `MedPcSession` into a `Converted` and register it as a
-`Protocol`.
+Every source event becomes one line or is counted as unmapped (`medpc.unmapped_codes` in the header); lines the converter adds, such as a session start the file does not record, are counted in `medpc.synthesised_lines`. To read another MSN program, write a function that turns a `MedPcSession` into a `Converted` and register it as a `Protocol`.
 
-Each source event becomes one body line or is counted as unmapped
-(`medpc.unmapped_codes` in the header); lines the converter adds, such
-as a session start the file does not record, are counted in
-`medpc.synthesised_lines`. Food-cup entries and exits are written as the
-extension types `head_entry` / `head_exit`; `read_log` keeps them in
-`raw_records` and leaves them out of `events`.
+## Limitations
+
+- Python only. Readers in other languages have to be written against the [OperantKitLog](https://github.com/OperantKit/OperantKitLog) specification.
+- One session per file; OKL does not concatenate sessions in one file.
+- The MED-PC importer reads only programs with a protocol. Food-cup entries and exits from those programs are written as the extension types `head_entry` / `head_exit`; `read_log` keeps them in `raw_records`, not in `events`.
 
 ## Development
 
 ```bash
+python -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/pytest
-.venv/bin/pytest --cov=src --cov-report=term-missing
-.venv/bin/ruff check src tests
-.venv/bin/black --check src tests
 ```
 
-## Format reference
-
-See [`docs/en/format.md`](docs/en/format.md) for the OKL v1 schema.
+Every `python` block in this README and `README.ja.md` is run by `tests/test_readme_examples.py`.
 
 ## References
 
-- Ferster, C. B., & Skinner, B. F. (1957). *Schedules of reinforcement*.
-  Appleton-Century-Crofts.
+- Bernardy, J. L. (2025). *Supplemental material: Feedback function and performance on variable differential reinforcement of low rates: Tempus urgit vel abundat?* [Data set]. Harvard Dataverse. https://doi.org/10.7910/DVN/BXVB2F
+- McCutcheon, J. (2022). *Progressive ratio in protein-restricted vs. non-restricted rats* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.5409201
+- Sosa, R., Mata-Luévanos, J., Tapia-de-Jesús, A., Saavedra, P., & Buenrostro-Jáuregui, M. (2026). *Longitudinal association between different indices of behavioral inhibition* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19164959
+
+## License
+
+MIT. See [LICENSE](LICENSE).

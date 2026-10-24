@@ -2,144 +2,90 @@
 
 :gb: [English README](README.md)
 
-OperantKit セッションイベントの OKL v1 フォーマット定義 +
-writer / reader。
+session-recorder は、オペラント実験のセッションで起きた出来事（反応・強化子の提示・状態の変化・フェイズ）をプレーンテキストのログファイルに保存し、そのファイルを Python に読み戻します。[OperantKit](https://github.com/OperantKit) でセッションを走らせ、人もプログラムも読めるセッション記録を残したい人のためのパッケージです。OperantKit の中では、セッションを走らせるプログラム（[session-runner](https://github.com/OperantKit/session-runner)）と分析（[session-analyzer](https://github.com/OperantKit/session-analyzer)）の間に位置します。
 
-## 役割
+- **1 セッション 1 ファイルで、テキストエディタで読めます。** 短いヘッダの後に、1 つの出来事につきタブ区切りの 1 行が続きます。
+- **ファイルが自分自身を説明します。** ヘッダにセッション名・時計・メモが入り、出来事の種類ごとに型付きの列が宣言されます。
+- **過去の MED-PC のデータも合流できます。** MED-PC IV / V のデータファイルを同じ形式に変換できます。
 
-`session-recorder` は、セッションイベント永続化の正典となる **wire
-format**（[OKL v1 スキーマ](docs/ja/format.md)）と、その Python
-**writer** + **reader** を提供する。**セッションを駆動したり、
-ハードウェアをポーリングしたり、DSL をパースしたりはしない** —
-それらの責務は別パッケージに分離されている:
-
-| 責務 | パッケージ |
-|---|---|
-| セッションライフサイクル（イベント） | `experiment-core` |
-| セッション駆動（manual API） | `session-runner` |
-| HAL Protocol + ハードウェア駆動 | `experiment-io` |
-| DSL パース | `contingency-dsl-py` |
-| スケジュールランタイム | `contingency-py` |
-| エンドツーエンド CLI glue | `operantkit-cli` |
-
-## 責務
-
-- **`OklSink`** — `experiment_core.EventSink` Protocol を実装。
-  OKL v1 ヘッダを 1 度だけ書いた後、`emit` されたイベントを
-  1 行 1 TSV で追記する。
-- **`read_log` / `iter_records`** — OKL v1 ログを型付き Python
-  オブジェクトに読み戻す。未知の event 型は
-  `on_unknown="warn" | "skip" | "error"` で挙動を選べる。
-- **Format モジュール**（`session_recorder.format`） —
-  `experiment_core.SessionEvent` と OKL v1 wire format 間の正典
-  シリアライザ / デシリアライザ。
-- **MED-PC 取り込み**（`session_recorder.medpc`） — MED-PC IV / V の
-  データファイル（FORMAT 1 Annotated、FORMAT 4 Stripped with Variable
-  Identification）を読み、OKL v1 ログとして書き出す。
-- **Format ドキュメント**（[`docs/en/format.md`](docs/en/format.md)） —
-  言語非依存のスキーマリファレンス。将来の Rust / TypeScript reader は
-  これにバイト単位で従うこと。
+ログの形式は OKL（OperantKitLog）と呼びます。仕様は [OperantKitLog](https://github.com/OperantKit/OperantKitLog) リポジトリにあります。AI コーディングエージェント向けの案内は [AGENTS.md](AGENTS.md) にあります。
 
 ## インストール
 
-```bash
-pip install session-recorder
-```
-
-開発用:
+Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていないため、`pip install session-recorder` は今のところ使えません。session-recorder と、それが必要とする OperantKit のパッケージを、依存の解決をせずに GitHub から入れてください。
 
 ```bash
-mise exec -- python -m venv .venv
-mise exec -- .venv/bin/python -m pip install -e ../experiment-core
-mise exec -- .venv/bin/python -m pip install -e '.[dev]'
+G=git+https://github.com/OperantKit
+pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
 ```
 
-`experiment-core` はローカル依存解決のため path install する。
+外部ライブラリは必要ありません。`pip check` はこれらの開発版どうしのバージョンの食い違いを報告しますが、以下の例の動作には影響しません。
 
-## 30 秒で動く例
+## 例
 
-短い FR 3 のセッションを OKL v1 ファイルに書き、型付きのイベントとして読み戻す:
+短い FR 3 のセッション（3 回目の反応の後に強化子を 1 回提示）をログファイルに書き、読み戻します。
 
 ```python
 from experiment_core import ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent
 from session_recorder import OklSink, read_log
 
-sink = OklSink("fr3.okl")
+sink = OklSink("fr3.txt")
 sink.write_header(session_name="demo", clock_type="VirtualClock", session_start=0.0,
                   metadata={"dsl": "FR 3"})
 for i, t in enumerate([1.0, 2.0, 3.0], start=1):
     sink.emit(ResponseEvent(id=i, timestamp=t))
 sink.emit(ReinforcerStartEvent(id=1, timestamp=3.0))
-sink.emit(ReinforcerEndEvent(id=1, timestamp=6.0))  # 3 秒間の強化子提示
+sink.emit(ReinforcerEndEvent(id=1, timestamp=6.0))  # 強化子へのアクセス 3 秒
 
-print(open("fr3.okl", encoding="utf-8").read().split("# ---\n")[1], end="")
-# 1.0	response	1	-
-# 2.0	response	2	-
-# 3.0	response	3	-
-# 3.0	reinforcer_start	1	1.0	-
-# 6.0	reinforcer_end	1	-
-
-log = read_log("fr3.okl")
-print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.events][-2:])
-# demo {'dsl': 'FR 3'} ['ReinforcerStartEvent', 'ReinforcerEndEvent']
+log = read_log("fr3.txt")
+print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.events])
+# demo {'dsl': 'FR 3'} ['ResponseEvent', 'ResponseEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'ReinforcerEndEvent']
 ```
 
-ファイルは注釈行のヘッダ（セッション名・時計・メタデータ、各イベント種別とその列を宣言するコードブック）で始まり、その後に 1 イベント 1 行のタブ区切りの行が続く。`grep` や `awk` がそのまま使える。実際のセッションでは、イベントは [session-runner](https://github.com/OperantKit/session-runner)（`pip install session-runner`）から来る。`OklSink` をその `sink` に渡すか、`tee` で他の sink と組み合わせる。
+書き出されるファイル `fr3.txt` は次のとおりです。
 
-## 自作の 50 行のロガーでは足りない理由
-
-イベントごとに CSV や `json.dumps` で書くだけのロガーは、セッション記録を再利用可能にする次の点を落とす:
-
-- **自己記述的なファイル.** ヘッダはセッション名・時計の種類・開始時刻・自由形式のメタデータ（例: DSL の原文）と、型付きの列を持つイベント種別のコードブックを持つ。本文の解釈に本パッケージは要らない。
-- **型付きイベントへの往復.** `read_log` / `iter_records` は各行を `experiment_core` のイベントクラス（`ResponseEvent`、`ReinforcerStartEvent` など）に戻す。オペランダムと強化子の potency も含む。
-- **未知のイベントを明示的に扱う.** コードブックに無いイベント種別は、警告・読み飛ばし・エラーのいずれかにする（`on_unknown="warn" | "skip" | "error"`）。誤って解釈することはない。
-- **エスケープと欠損値.** 文字列の列にあるタブ・改行・バックスラッシュはエスケープし、省略可能な値の欠損は `-` で書くので、どの行も列数が決まっている。
-- **ヘッダは 1 回だけ、先頭に書く.** `OklSink` は 2 回目のヘッダ、空でないファイルへのヘッダの追加、ヘッダより前のイベントを拒否する。
-- **フェーズの区切り.** `write_phase_enter` / `write_phase_exit` で、1 つの記録の中にベースライン・消去・テストなどのフェーズを記せる。
-- **仕様のある形式.** 形式は [OperantKitLog](https://github.com/OperantKit/OperantKitLog)（文法・ヘッダ・コードブック・ワイヤ形式）で定義され、本パッケージのテストは正常系と異常系あわせて 10 個の適合性ファイルを読む。
-
-## クイックスタート
-
-### 書き込み
-
-```python
-from session_recorder import OklSink
-from experiment_core import ResponseEvent
-
-sink = OklSink("session.txt")
-sink.write_header(
-    session_name="demo",
-    clock_type="ManualClock",
-    session_start=0.0,
-    metadata={"dsl": "FR3"},
-)
-sink.emit(ResponseEvent(id=1, timestamp=0.5))
+```text
+# OKL v1
+# session_name = "demo"
+# clock_type = "VirtualClock"
+# session_start = 0.0
+# meta:
+#   dsl = "FR 3"
+# events:
+#   response          : id:int operandum:int?
+#   reinforcer_start  : id:int potency:float operandum:int?
+#   reinforcer_end    : id:int operandum:int?
+#   state_change      : from:str to:str
+#   component_change  : from:str to:str
+#   phase_enter       : label:str name:str? time:str? location:str? cue:str?
+#   phase_exit        : label:str
+# ---
+1.0	response	1	-
+2.0	response	2	-
+3.0	response	3	-
+3.0	reinforcer_start	1	1.0	-
+6.0	reinforcer_end	1	-
 ```
 
-`OklSink` は `experiment_core.EventSink` Protocol を満たすため、
-セッションイベントを emit する任意のプロデューサ（例: `session-runner`
-の `SessionRunner`）に渡せる。
-
-### 読み込み
-
-```python
-from session_recorder import read_log
-
-log = read_log("session.txt")
-print(log.meta.session_name)
-for event in log.events:
-    print(event)
-```
-
-`session.txt` は素の UTF-8 テキストで、`less`・`grep`・`awk`・Notepad
-で前処理なしに開ける:
+本体の各行は、秒単位の時刻・出来事の種類・ヘッダがその種類に宣言した列の順に並びます。`-` は省略可能な列が空であることを示します（ここでは、反応が行われたレバーやキー＝オペランダムの指定がありません）。標準のコマンドがそのまま使えます。
 
 ```bash
-column -t -s $'\t' < session.txt
-grep '^[0-9]' session.txt | awk -F'\t' '$2=="response"' | wc -l
+grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3
 ```
 
-### MED-PC データの取り込み
+実際のセッションでは、出来事は [session-runner](https://github.com/OperantKit/session-runner) から届きます。その `sink` に `OklSink` を渡してください。
+
+## 中身
+
+- **`OklSink`** は、空のファイルの先頭にヘッダを 1 度だけ書き、その後は出来事 1 つにつき 1 行を書きます。2 度目のヘッダと、ヘッダより前の出来事は受け付けません。`write_phase_enter` / `write_phase_exit` で、ベースライン・消去・テストなどのフェイズを 1 つのログの中に印せます。[experiment-core](https://github.com/OperantKit/experiment-core) の `EventSink` プロトコルを実装しているため、セッションの出来事を出す OperantKit のプログラムはどれもこれを通して書けます。
+- **`read_log` / `iter_records`** は、ログを型付きの `experiment_core` の出来事として読み戻します。ヘッダに無い種類の出来事は、警告・読み飛ばし・エラーのいずれかで扱います（`on_unknown="warn" | "skip" | "error"`）。
+- **`session_recorder.format`** は、`experiment_core.SessionEvent` と OKL v1 の wire format の間の正典のシリアライザです。
+- **`session_recorder.medpc`** は、MED-PC IV / V のデータファイル（FORMAT 1 Annotated、FORMAT 4 Stripped with Variable Identification）を OKL のログに変換します。
+- **[形式の資料](docs/ja/format.md):** session-recorder はセッションの出来事を保存するための正典の wire format を持ちます。このページはその言語に依存しないスキーマの資料です。
+
+### MED-PC のデータを変換する
+
+MED-PC のデータファイルには、出来事のコードが何を意味するかが書かれていません。それを決めているのは、ファイルを書いた MSN プログラムです。そのため `medpc_to_okl` は、`session_recorder.medpc.PROTOCOLS` のうちの 1 つをプロトコルとして受け取ります。組み込みの 4 つのプロトコル（`bernardy-vdrl`、`bernardy-training`、`sosa-inh`、`mccutcheon-prpr`）は、3 つの公開データセット（Bernardy, 2025; McCutcheon, 2022; Sosa et al., 2026）の公開されたプログラムに対応しています。Annotated 形式のファイルは `MSN:` の行からプロトコルを判定します。FORMAT 4 のファイルにはプログラム名が無いため、`protocol=` の指定が必要です。
 
 ```python
 from pathlib import Path
@@ -147,14 +93,14 @@ from pathlib import Path
 from session_recorder import read_log
 from session_recorder.medpc import medpc_to_okl, read_medpc
 
-Path("JL4.txt").write_text(  # a MED-PC FORMAT 1 (Annotated) file
+Path("JL4.txt").write_text(  # MED-PC FORMAT 1 (Annotated) のファイル
     "Start Date: 08/19/24\nEnd Date: 08/19/24\nSubject: JL4\nExperiment: VDRL\n"
     "Group: 1\nBox: 4\nStart Time:  9:51:02\nEnd Time: 11:08:00\nMSN: Training\n"
     "A:\n     0:  0.000  270000.000  60.000  3.000  30.000\n"
     "C:\n     0:  0.111  2742.200  5763.400  27000.999\n"
 )
 for i, session in enumerate(read_medpc("JL4.txt")):
-    result = medpc_to_okl(session, f"session_{i}.txt")  # protocol は MSN から推定
+    result = medpc_to_okl(session, f"session_{i}.txt")  # プロトコルは MSN から判定
     assert result.primary + sum(result.unmapped.values()) == result.source_events
 
 log = read_log("session_0.txt")
@@ -162,32 +108,30 @@ print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.eve
 # VI 30s ['StateChangeEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'StateChangeEvent']
 ```
 
-MED-PC のファイル自体はイベントコードの意味を持たず、意味は MSN プログラムが決める。
-そのため `medpc_to_okl` は `session_recorder.medpc.PROTOCOLS` のどれかを `protocol` で受け取る。
-組み込みの protocol は、プログラムが公開されている 3 つの公開データセット用
-（`bernardy-vdrl`、`bernardy-training`、`sosa-inh`、`mccutcheon-prpr`）。
-注釈付きファイルは `MSN:` 行から推定し、FORMAT 4 は MSN 名を持たないので `protocol=` が要る。
-別のプログラムを読むには、`MedPcSession` を `Converted` に変える関数を書いて `Protocol` として登録する。
+元のファイルの出来事はすべて、1 行に書かれるか、対応なし（ヘッダの `medpc.unmapped_codes`）として数えられます。ファイルに記録されていないセッション開始など、変換の側で足した行は `medpc.synthesised_lines` に数えられます。別の MSN プログラムを読むには、`MedPcSession` を `Converted` に変える関数を書き、`Protocol` として登録してください。
 
-元ファイルの各イベントは本文 1 行になるか、未対応として数える（ヘッダの `medpc.unmapped_codes`）。
-ファイルに記録の無いセッション開始など、変換器が足した行は `medpc.synthesised_lines` に数える。
-餌皿への出入りは拡張型 `head_entry` / `head_exit` で書く。`read_log` はこれらを
-`raw_records` に入れ、`events` には入れない。
+## 制限
+
+- Python 専用です。他の言語の読み取りプログラムは、[OperantKitLog](https://github.com/OperantKit/OperantKitLog) の仕様に沿って書く必要があります。
+- 1 ファイルに 1 セッションです。OKL は 1 つのファイルに複数のセッションをつなげません。
+- MED-PC の取り込みが読めるのは、プロトコルのあるプログラムだけです。それらのプログラムが記録する餌皿への頭部の進入・退出は拡張の種類 `head_entry` / `head_exit` として書かれ、`read_log` はこれらを `events` ではなく `raw_records` に入れます。
 
 ## 開発
 
 ```bash
+python -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/pytest
-.venv/bin/pytest --cov=src --cov-report=term-missing
-.venv/bin/ruff check src tests
-.venv/bin/black --check src tests
 ```
 
-## フォーマット仕様
-
-OKL v1 スキーマは [`docs/ja/format.md`](docs/ja/format.md) を参照。
+この README と `README.md` の `python` のコードブロックはすべて、`tests/test_readme_examples.py` が実行します。
 
 ## 参考文献
 
-- Ferster, C. B., & Skinner, B. F. (1957). *Schedules of reinforcement*.
-  Appleton-Century-Crofts.
+- Bernardy, J. L. (2025). *Supplemental material: Feedback function and performance on variable differential reinforcement of low rates: Tempus urgit vel abundat?* [Data set]. Harvard Dataverse. https://doi.org/10.7910/DVN/BXVB2F
+- McCutcheon, J. (2022). *Progressive ratio in protein-restricted vs. non-restricted rats* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.5409201
+- Sosa, R., Mata-Luévanos, J., Tapia-de-Jesús, A., Saavedra, P., & Buenrostro-Jáuregui, M. (2026). *Longitudinal association between different indices of behavioral inhibition* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19164959
+
+## ライセンス
+
+MIT。[LICENSE](LICENSE) を参照してください。
