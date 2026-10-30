@@ -87,7 +87,7 @@ writer は最低限以下を codebook に出力すること（追加は許容）
 
 ```
 # events:
-#   response          : id:int operandum:int?
+#   response          : id:int operandum:int? device_time:float?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -95,6 +95,11 @@ writer は最低限以下を codebook に出力すること（追加は許容）
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
 ```
+
+行の `timestamp` はセッションの時刻である。`response.device_time` は、機器が
+自分の時計で反応に付けた時刻を記録として残す列で、自前の時計を持たない入力では
+`-` になる。reader は列の並びをファイル自身の codebook から取るので、ヘッダの
+`response` に `device_time` が無いログもそのまま読め、`device_time` は欠損になる。
 
 ## Body
 
@@ -139,7 +144,7 @@ escape を追加しても古い reader は壊れない。producer は逆にこ�
 # meta:
 #   dsl = "FR3"
 # events:
-#   response          : id:int operandum:int?
+#   response          : id:int operandum:int? device_time:float?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -148,9 +153,9 @@ escape を追加しても古い reader は壊れない。producer は逆にこ�
 #   phase_exit        : label:str
 # ---
 0.0	state_change	IDLE	RUNNING
-0.523	response	1	0
-1.014	response	2	0
-1.502	response	3	0
+0.523	response	1	0	-
+1.014	response	2	0	-
+1.502	response	3	0	-
 1.502	reinforcer_start	1	1.0	0
 2.002	reinforcer_end	1	0
 ```

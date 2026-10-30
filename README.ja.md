@@ -56,7 +56,7 @@ print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.e
 # meta:
 #   dsl = "FR 3"
 # events:
-#   response          : id:int operandum:int?
+#   response          : id:int operandum:int? device_time:float?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -64,14 +64,14 @@ print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.e
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
 # ---
-1.0	response	1	-
-2.0	response	2	-
-3.0	response	3	-
+1.0	response	1	-	-
+2.0	response	2	-	-
+3.0	response	3	-	-
 3.0	reinforcer_start	1	1.0	-
 6.0	reinforcer_end	1	-
 ```
 
-本体の各行は、秒単位の時刻・出来事の種類・ヘッダがその種類に宣言した列の順に並びます。`-` は省略可能な列が空であることを示します（ここでは、反応が行われたレバーやキー＝オペランダムの指定がありません）。標準のコマンドがそのまま使えます。
+本体の各行は、秒単位の時刻・出来事の種類・ヘッダがその種類に宣言した列の順に並びます。`-` は省略可能な列が空であることを示します（ここでは、反応が行われたレバーやキー＝オペランダムの指定と、機器が自分の時計で反応に付けた時刻 `device_time` がありません。先頭の列は常にセッションの時刻です）。標準のコマンドがそのまま使えます。
 
 ```bash
 grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3

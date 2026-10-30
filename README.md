@@ -56,7 +56,7 @@ The file `fr3.txt` it writes:
 # meta:
 #   dsl = "FR 3"
 # events:
-#   response          : id:int operandum:int?
+#   response          : id:int operandum:int? device_time:float?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -64,14 +64,14 @@ The file `fr3.txt` it writes:
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
 # ---
-1.0	response	1	-
-2.0	response	2	-
-3.0	response	3	-
+1.0	response	1	-	-
+2.0	response	2	-	-
+3.0	response	3	-	-
 3.0	reinforcer_start	1	1.0	-
 6.0	reinforcer_end	1	-
 ```
 
-Each body line is a time in seconds, the event type, and the columns the header declares for it; `-` marks an empty optional column (here, no operandum, the lever or key the response was made on). Standard tools work on it directly:
+Each body line is a time in seconds, the event type, and the columns the header declares for it; `-` marks an empty optional column (here, no operandum, the lever or key the response was made on, and no `device_time`, the time the apparatus itself stamped on the response; the first column is always session time). Standard tools work on it directly:
 
 ```bash
 grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3

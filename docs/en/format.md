@@ -96,7 +96,7 @@ are permitted):
 
 ```
 # events:
-#   response          : id:int operandum:int?
+#   response          : id:int operandum:int? device_time:float?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -104,6 +104,12 @@ are permitted):
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
 ```
+
+The line's `timestamp` is session time. `response.device_time` is the time
+the apparatus stamped on the response with its own clock, kept as a record
+(`-` when the source has no clock of its own). Readers take the columns from
+the file's own codebook, so a log whose header declares `response` without
+`device_time` still reads, with `device_time` absent.
 
 ## Body
 
@@ -151,7 +157,7 @@ smuggle non-canonical encodings.
 # meta:
 #   dsl = "FR3"
 # events:
-#   response          : id:int operandum:int?
+#   response          : id:int operandum:int? device_time:float?
 #   reinforcer_start  : id:int potency:float operandum:int?
 #   reinforcer_end    : id:int operandum:int?
 #   state_change      : from:str to:str
@@ -160,9 +166,9 @@ smuggle non-canonical encodings.
 #   phase_exit        : label:str
 # ---
 0.0	state_change	IDLE	RUNNING
-0.523	response	1	0
-1.014	response	2	0
-1.502	response	3	0
+0.523	response	1	0	-
+1.014	response	2	0	-
+1.502	response	3	0	-
 1.502	reinforcer_start	1	1.0	0
 2.002	reinforcer_end	1	0
 ```

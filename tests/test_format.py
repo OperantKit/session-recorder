@@ -69,13 +69,13 @@ def test_encode_decode_roundtrip(raw: str, encoded: str) -> None:
 @pytest.mark.unit
 def test_encode_response_event_without_operandum_uses_absent_token() -> None:
     line = encode_event(ResponseEvent(id=7, timestamp=1.5))
-    assert line == "1.5\tresponse\t7\t-"
+    assert line == "1.5\tresponse\t7\t-\t-"
 
 
 @pytest.mark.unit
 def test_encode_response_event_with_operandum() -> None:
     line = encode_event(ResponseEvent(id=7, timestamp=1.5, operandum=1))
-    assert line == "1.5\tresponse\t7\t1"
+    assert line == "1.5\tresponse\t7\t1\t-"
 
 
 @pytest.mark.unit
@@ -169,16 +169,16 @@ def test_encode_phase_exit() -> None:
 
 @pytest.mark.unit
 def test_parse_event_line_response() -> None:
-    rec = parse_event_line("1.5\tresponse\t7\t-", CANONICAL_CODEBOOK)
+    rec = parse_event_line("1.5\tresponse\t7\t-\t-", CANONICAL_CODEBOOK)
     assert rec.timestamp == 1.5
     assert rec.type == EVENT_TYPE_RESPONSE
-    assert rec.args == {"id": 7, "operandum": None}
+    assert rec.args == {"id": 7, "operandum": None, "device_time": None}
 
 
 @pytest.mark.unit
 def test_parse_event_line_response_with_operandum() -> None:
-    rec = parse_event_line("1.5\tresponse\t7\t1", CANONICAL_CODEBOOK)
-    assert rec.args == {"id": 7, "operandum": 1}
+    rec = parse_event_line("1.5\tresponse\t7\t1\t-", CANONICAL_CODEBOOK)
+    assert rec.args == {"id": 7, "operandum": 1, "device_time": None}
 
 
 @pytest.mark.unit
@@ -204,7 +204,7 @@ def test_parse_event_line_wrong_column_count() -> None:
 def test_parse_event_line_required_field_absent_raises() -> None:
     with pytest.raises(ValueError, match="required field"):
         # response.id is required; absent token "-" must raise
-        parse_event_line("1.0\tresponse\t-\t-", CANONICAL_CODEBOOK)
+        parse_event_line("1.0\tresponse\t-\t-\t-", CANONICAL_CODEBOOK)
 
 
 # --------------------------------------------------------------------------- #

@@ -81,6 +81,8 @@ CANONICAL_CODEBOOK: Final[dict[str, tuple[Field, ...]]] = {
     EVENT_TYPE_RESPONSE: (
         Field("id", "int", False),
         Field("operandum", "int", True),
+        # The apparatus's own stamp; the line's timestamp is session time.
+        Field("device_time", "float", True),
     ),
     EVENT_TYPE_REINFORCER_START: (
         Field("id", "int", False),
@@ -566,7 +568,11 @@ def encode_event(event: SessionEvent) -> str:
         return _encode_line(
             event.timestamp,
             EVENT_TYPE_RESPONSE,
-            {"id": event.id, "operandum": event.operandum},
+            {
+                "id": event.id,
+                "operandum": event.operandum,
+                "device_time": event.device_time,
+            },
         )
     if isinstance(event, ReinforcerStartEvent):
         return _encode_line(
@@ -695,6 +701,7 @@ def materialise(record: ParsedRecord) -> SessionEvent:
             id=record.args["id"],
             timestamp=record.timestamp,
             operandum=record.args.get("operandum"),
+            device_time=record.args.get("device_time"),
         )
     if record.type == EVENT_TYPE_REINFORCER_START:
         return ReinforcerStartEvent(

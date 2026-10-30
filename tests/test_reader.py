@@ -148,7 +148,7 @@ def test_iter_records_yields_parsed_records(tmp_log: Path) -> None:
     records = list(iter_records(tmp_log))
     assert len(records) == 1
     assert records[0].type == "response"
-    assert records[0].args == {"id": 1, "operandum": None}
+    assert records[0].args == {"id": 1, "operandum": None, "device_time": None}
     assert records[0].timestamp == 0.5
 
 
@@ -188,9 +188,9 @@ def test_read_log_keeps_declared_extension_types_out_of_events(tmp_log: Path) ->
         write_header(
             f, session_name="ext", clock_type="MED-PC", session_start=0.0, codebook=codebook
         )
-        f.write("0.5\tresponse\t1\t0\n")
+        f.write("0.5\tresponse\t1\t0\t-\n")
         f.write("1.0\thead_entry\t1\n")
-        f.write("1.5\tresponse\t2\t0\n")
+        f.write("1.5\tresponse\t2\t0\t-\n")
 
     log = read_log(tmp_log, on_unknown="error")
     assert log.events == [
