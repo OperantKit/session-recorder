@@ -13,17 +13,15 @@ The log format is called OKL (OperantKitLog). Its specification is in the [Opera
 ## Installation
 
 
-Python 3.11 or newer. session-recorder is not on PyPI yet. Install it from GitHub together with the OperantKit packages it needs:
+Python 3.11 or newer. session-recorder is not on PyPI yet. Install it from GitHub together with the OperantKit packages it needs, without dependency resolution:
 
 ```bash
 # Until the PyPI release, install from GitHub together with its OperantKit dependencies.
-pip install git+https://github.com/OperantKit/contingency-dsl-py \
-            git+https://github.com/OperantKit/contingency-py \
-            git+https://github.com/OperantKit/experiment-core \
-            git+https://github.com/OperantKit/session-recorder
+G=git+https://github.com/OperantKit
+pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
 ```
 
-No third-party libraries are needed. pip resolves the dependencies between them, and `pip check` reports nothing.
+`--no-deps` is needed because the GitHub builds carry development version numbers that do not satisfy each other's version ranges, so plain `pip install` stops with `ResolutionImpossible`. For the same reason `pip check` reports these version mismatches; they do not affect the examples below. No third-party packages are needed.
 
 ## Example
 
@@ -123,8 +121,11 @@ Every source event becomes one line or is counted as unmapped (`medpc.unmapped_c
 ## Development
 
 ```bash
+git clone https://github.com/OperantKit/session-recorder && cd session-recorder
 python -m venv .venv
-.venv/bin/python -m pip install -e ".[dev]"
+G=git+https://github.com/OperantKit
+.venv/bin/python -m pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core -e .
+.venv/bin/python -m pip install pytest pytest-cov
 .venv/bin/pytest
 ```
 

@@ -13,17 +13,15 @@ session-recorder は、オペラント実験のセッションで起きた出来
 ## インストール
 
 
-Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていません。session-recorder と、それが必要とする OperantKit のパッケージを一緒に GitHub から入れます。
+Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていません。session-recorder と、それが必要とする OperantKit のパッケージを、依存の解決をせずに一緒に GitHub から入れます。
 
 ```bash
 # PyPI に公開されるまでは、OperantKit の依存と一緒に GitHub から入れる。
-pip install git+https://github.com/OperantKit/contingency-dsl-py \
-            git+https://github.com/OperantKit/contingency-py \
-            git+https://github.com/OperantKit/experiment-core \
-            git+https://github.com/OperantKit/session-recorder
+G=git+https://github.com/OperantKit
+pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
 ```
 
-外部ライブラリは必要ありません。依存は pip が解決するので、`pip check` は何も報告しません。
+`--no-deps` が要るのは、GitHub から入れた版が開発版の番号を名乗り、互いの版の範囲を満たさないためです。付けずに `pip install` すると `ResolutionImpossible` で止まります。同じ理由で `pip check` はこの版の不一致を報告しますが、下の例の動作には影響しません。OperantKit 以外のパッケージは要りません。
 
 ## 例
 
@@ -123,8 +121,11 @@ print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.eve
 ## 開発
 
 ```bash
+git clone https://github.com/OperantKit/session-recorder && cd session-recorder
 python -m venv .venv
-.venv/bin/python -m pip install -e ".[dev]"
+G=git+https://github.com/OperantKit
+.venv/bin/python -m pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core -e .
+.venv/bin/python -m pip install pytest pytest-cov
 .venv/bin/pytest
 ```
 
