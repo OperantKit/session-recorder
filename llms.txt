@@ -31,7 +31,7 @@ print(log.meta.session_name, log.events)  # demo [ResponseEvent(id=1, timestamp=
 
 ## Docs
 
-- [README](https://github.com/OperantKit/session-recorder/blob/main/README.md): role, 30-second example, why not to hand-roll a logger, quick start
+- [README](https://github.com/OperantKit/session-recorder/blob/main/README.md): role, example, why not to hand-roll a logger, quick start
 - [AGENTS.md](https://github.com/OperantKit/session-recorder/blob/main/AGENTS.md): when to use this package and what not to do
 - [Format reference](https://github.com/OperantKit/session-recorder/blob/main/docs/en/format.md): OKL v1 schema as implemented here
 
