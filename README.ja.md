@@ -13,23 +13,21 @@ session-recorder は、オペラント実験のセッションで起きた出来
 ## インストール
 
 
-Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていません。session-recorder と、それが必要とする OperantKit のパッケージを、依存の解決をせずに一緒に GitHub から入れます。
+Python 3.11 以上が必要です。session-recorder はまだ PyPI に登録されていません。GitHub から入れます。OperantKit のパッケージにも、それ以外のパッケージにも依存しません。
 
 ```bash
-# PyPI に公開されるまでは、OperantKit の依存と一緒に GitHub から入れる。
-G=git+https://github.com/OperantKit
-pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
+# PyPI に公開されるまでは GitHub から入れる。
+pip install git+https://github.com/OperantKit/session-recorder
 ```
 
-`--no-deps` が要るのは、GitHub から入れた版が開発版の番号を名乗り、互いの版の範囲を満たさないためです。付けずに `pip install` すると `ResolutionImpossible` で止まります。同じ理由で `pip check` はこの版の不一致を報告しますが、下の例の動作には影響しません。OperantKit 以外のパッケージは要りません。
+ログを書く・読むだけなら、セッションを動かすエンジンは付いてきません。記録の型と `EventSink` プロトコルはこのパッケージが定め、[experiment-core](https://github.com/OperantKit/experiment-core) が同じ名前で出し直します。
 
 ## 例
 
 短い FR 3 のセッション（3 回目の反応の後に強化子を 1 回提示）をログファイルに書き、読み戻します。
 
 ```python
-from experiment_core import ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent
-from session_recorder import OklSink, read_log
+from session_recorder import OklSink, ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent, read_log
 
 sink = OklSink("fr3.txt")
 sink.write_header(session_name="demo", clock_type="VirtualClock", session_start=0.0,
@@ -79,9 +77,9 @@ grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3
 
 ## 中身
 
-- **`OklSink`** は、空のファイルの先頭にヘッダを 1 度だけ書き、その後は出来事 1 つにつき 1 行を書きます。2 度目のヘッダと、ヘッダより前の出来事は受け付けません。`write_phase_enter` / `write_phase_exit` で、ベースライン・消去・テストなどのフェイズを 1 つのログの中に印せます。[experiment-core](https://github.com/OperantKit/experiment-core) の `EventSink` プロトコルを実装しているため、セッションの出来事を出す OperantKit のプログラムはどれもこれを通して書けます。
-- **`read_log` / `iter_records`** は、ログを型付きの `experiment_core` の出来事として読み戻します。ヘッダに無い種類の出来事は、警告・読み飛ばし・エラーのいずれかで扱います（`on_unknown="warn" | "skip" | "error"`）。
-- **`session_recorder.format`** は、`experiment_core.SessionEvent` と OKL v1 の wire format の間の正典のシリアライザです。
+- **`OklSink`** は、空のファイルの先頭にヘッダを 1 度だけ書き、その後は出来事 1 つにつき 1 行を書きます。2 度目のヘッダと、ヘッダより前の出来事は受け付けません。`write_phase_enter` / `write_phase_exit` で、ベースライン・消去・テストなどのフェイズを 1 つのログの中に印せます。`write_stimulus_on` / `write_stimulus_off` は、刺激の提示の始まりと終わりを、どの理論での役割（遅延条件づけの CS や US など）も名指さずに記録します。このパッケージが定める `EventSink` プロトコルを実装しているため、セッションの出来事を出す OperantKit のプログラムはどれもこれを通して書けます。
+- **`read_log` / `iter_records`** は、ログを型付きの出来事（`ResponseEvent`・`ReinforcerStartEvent` など）として読み戻します。刺激の提示は `raw_records` に残ります。ヘッダに無い種類の出来事は、警告・読み飛ばし・エラーのいずれかで扱います（`on_unknown="warn" | "skip" | "error"`）。
+- **`session_recorder.format`** は、`SessionEvent` と OKL v1 の wire format の間の正典のシリアライザです。
 - **`session_recorder.medpc`** は、MED-PC IV / V のデータファイル（FORMAT 1 Annotated、FORMAT 4 Stripped with Variable Identification）を OKL のログに変換します。
 - **[形式の資料](docs/ja/format.md):** session-recorder はセッションの出来事を保存するための正典の wire format を持ちます。このページはその言語に依存しないスキーマの資料です。
 
@@ -123,8 +121,7 @@ print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.eve
 ```bash
 git clone https://github.com/OperantKit/session-recorder && cd session-recorder
 python -m venv .venv
-G=git+https://github.com/OperantKit
-.venv/bin/python -m pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core -e .
+.venv/bin/python -m pip install -e .
 .venv/bin/python -m pip install pytest pytest-cov
 .venv/bin/pytest
 ```

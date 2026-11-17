@@ -49,7 +49,7 @@ The header carries:
 - `# clock_type = "<basic-string>"` — required clock identifier.
 - `# session_start = <number>` — required session-start timestamp
   (seconds in the producer's clock).
-- Optional top-level keys (mirror `experiment_core.SessionMeta`):
+- Optional top-level keys (mirror `session_recorder.SessionMeta`):
   - `# subject_id = "<str>"`
   - `# replication_index = <int>`
   - `# experiment_name = "<str>"`
@@ -103,6 +103,8 @@ are permitted):
 #   component_change  : from:str to:str
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
+#   stimulus_on       : stimulus:str
+#   stimulus_off      : stimulus:str
 ```
 
 The line's `timestamp` is session time. `response.device_time` is the time
@@ -164,6 +166,8 @@ smuggle non-canonical encodings.
 #   component_change  : from:str to:str
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
+#   stimulus_on       : stimulus:str
+#   stimulus_off      : stimulus:str
 # ---
 0.0	state_change	IDLE	RUNNING
 0.523	response	1	0	-

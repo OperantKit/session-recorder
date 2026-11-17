@@ -11,9 +11,8 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
-from experiment_core import ReinforcerStartEvent, ResponseEvent
 
-from session_recorder import read_log
+from session_recorder import ReinforcerStartEvent, ResponseEvent, read_log
 from session_recorder.medpc import guess_protocol, medpc_to_okl, read_medpc, split_code
 
 FIXTURES = Path(__file__).parent / "fixtures" / "medpc"

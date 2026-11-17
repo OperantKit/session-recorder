@@ -117,7 +117,7 @@ def test_constants_match_spec() -> None:
     spec wording verbatim."""
     assert MAGIC == "# OKL v1"
     assert HEADER_TERMINATOR == "# ---"
-    # The seven canonical event types listed in spec/codebook.md §2:
+    # The canonical event types listed in spec/codebook.md §2:
     expected_canonical = {
         "response",
         "reinforcer_start",
@@ -126,5 +126,7 @@ def test_constants_match_spec() -> None:
         "component_change",
         "phase_enter",
         "phase_exit",
+        "stimulus_on",
+        "stimulus_off",
     }
     assert set(CANONICAL_CODEBOOK) == expected_canonical

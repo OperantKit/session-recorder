@@ -5,16 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from experiment_core import (
+
+from session_recorder import (
     EventSink,
+    OklSink,
     ReinforcerEndEvent,
     ReinforcerStartEvent,
     ResponseEvent,
     SessionState,
     StateChangeEvent,
 )
-
-from session_recorder import OklSink
 from session_recorder.format import HEADER_TERMINATOR, MAGIC
 
 

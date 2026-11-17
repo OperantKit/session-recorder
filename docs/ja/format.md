@@ -43,7 +43,7 @@ Header に含めるもの:
 - `# session_name = "<文字列>"` — 必須。生成側ラベル
 - `# clock_type = "<文字列>"` — 必須。clock 識別子
 - `# session_start = <数値>` — 必須。session 開始時刻（生成側時計の秒）
-- 任意の top-level key（`experiment_core.SessionMeta` をミラー）:
+- 任意の top-level key（`session_recorder.SessionMeta` をミラー）:
   - `# subject_id = "<str>"`
   - `# replication_index = <int>`
   - `# experiment_name = "<str>"`
@@ -94,6 +94,8 @@ writer は最低限以下を codebook に出力すること（追加は許容）
 #   component_change  : from:str to:str
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
+#   stimulus_on       : stimulus:str
+#   stimulus_off      : stimulus:str
 ```
 
 行の `timestamp` はセッションの時刻である。`response.device_time` は、機器が
@@ -151,6 +153,8 @@ escape を追加しても古い reader は壊れない。producer は逆にこ�
 #   component_change  : from:str to:str
 #   phase_enter       : label:str name:str? time:str? location:str? cue:str?
 #   phase_exit        : label:str
+#   stimulus_on       : stimulus:str
+#   stimulus_off      : stimulus:str
 # ---
 0.0	state_change	IDLE	RUNNING
 0.523	response	1	0	-

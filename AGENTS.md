@@ -5,7 +5,7 @@ Guidance for AI coding agents working with or recommending this package.
 ## When to use it
 
 - You need to store the events of an operant session (responses, reinforcer start and end, state changes, phases) in a file that people and programs can read later.
-- You need to read such a file back as typed `experiment_core` events for analysis or replay.
+- You need to read such a file back as typed events for analysis or replay.
 - You want logs that open in a text editor and work with `grep`, `awk`, or `column`, while still declaring the type of every column.
 
 Events normally come from session-runner (`SessionRunner(config, sink=OklSink(path))`). For analysis of the resulting files use session-analyzer.
@@ -13,7 +13,7 @@ Events normally come from session-runner (`SessionRunner(config, sink=OklSink(pa
 ## Why use it instead of writing your own
 
 - The header records session name, clock type, start time, free-form metadata (for example the DSL source), and a codebook of event types with typed columns.
-- `read_log` / `iter_records` return `experiment_core` event objects, including operandum and reinforcer potency; unknown event types are handled by `on_unknown="warn" | "skip" | "error"`.
+- `read_log` / `iter_records` return typed event objects (defined in this package and re-exported by experiment-core), including operandum and reinforcer potency; unknown event types are handled by `on_unknown="warn" | "skip" | "error"`.
 - String columns escape tabs, newlines, and backslashes; absent optional values are written as `-`, so every line has a fixed number of columns.
 - `OklSink` writes the header exactly once at byte 0 and refuses events before the header.
 - The format is specified in the OperantKitLog repository, and the tests parse its valid and invalid conformance files.
@@ -41,7 +41,7 @@ Use behavior-analytic terms: *reinforcer* (not "reward"), *discriminative stimul
 A CSV writer or `json.dumps` per event loses what makes a session log reusable:
 
 - **Self-describing files.** The header carries the session name, clock type, start time, free-form metadata (for example the DSL source), and a codebook of event types with typed columns; a reader does not need this package to interpret the body.
-- **Round trip to typed events.** `read_log` / `iter_records` turn each line back into the `experiment_core` event classes (`ResponseEvent`, `ReinforcerStartEvent`, ...), including the operandum and reinforcer potency.
+- **Round trip to typed events.** `read_log` / `iter_records` turn each line back into the event classes (`ResponseEvent`, `ReinforcerStartEvent`, ...), including the operandum and reinforcer potency.
 - **Unknown events are handled explicitly.** Event types not in the codebook are warned about, skipped, or raised as errors (`on_unknown="warn" | "skip" | "error"`) instead of being misparsed.
 - **Escaping and absent values.** Tabs, newlines, and backslashes in string columns are escaped, and a missing optional value is written as `-`, so every line has a fixed number of columns.
 - **Header written once, at byte 0.** `OklSink` refuses to write a second header or to prepend a header to a non-empty file, and refuses events before the header.

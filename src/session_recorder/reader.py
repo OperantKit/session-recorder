@@ -20,12 +20,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from experiment_core import SessionEvent, SessionMeta
-
+from .events import SessionEvent, SessionMeta
 from .format import (
     CANONICAL_CODEBOOK,
     EVENT_TYPE_PHASE_ENTER,
     EVENT_TYPE_PHASE_EXIT,
+    STIMULUS_RECORD_TYPES,
     Field,
     ParsedRecord,
     materialise,
@@ -67,7 +67,7 @@ class SessionLog:
     meta:
         The parsed header. Always present in OKL v1.
     events:
-        Every :class:`~experiment_core.events.SessionEvent` in emission
+        Every :class:`~session_recorder.SessionEvent` in emission
         order. Records of extension types (declared in the codebook but
         not canonical) are not included.
     raw_records:
@@ -229,7 +229,7 @@ def read_log(
             # Types declared in the codebook but outside the canonical set
             # ("extras are permitted") have no SessionEvent counterpart;
             # they stay available through ``raw_records`` only.
-            if rec.type in CANONICAL_CODEBOOK:
+            if rec.type in CANONICAL_CODEBOOK and rec.type not in STIMULUS_RECORD_TYPES:
                 events.append(materialise(rec))
 
     meta = header.session_meta()

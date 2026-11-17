@@ -11,15 +11,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from experiment_core import (
+
+from session_recorder import (
+    OklSink,
     ReinforcerEndEvent,
     ReinforcerStartEvent,
     ResponseEvent,
     SessionState,
     StateChangeEvent,
 )
-
-from session_recorder import OklSink
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ("docs/en/format.md", "docs/ja/format.md")

@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from experiment_core import ResponseEvent
 
-from session_recorder import OklSink, read_log
+from session_recorder import OklSink, ResponseEvent, read_log
 from session_recorder.format import (
     CANONICAL_CODEBOOK,
     EVENT_TYPE_RESPONSE,

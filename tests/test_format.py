@@ -6,7 +6,8 @@ import io
 from datetime import UTC
 
 import pytest
-from experiment_core import (
+
+from session_recorder import (
     ComponentChangeEvent,
     ReinforcerEndEvent,
     ReinforcerStartEvent,
@@ -14,7 +15,6 @@ from experiment_core import (
     SessionState,
     StateChangeEvent,
 )
-
 from session_recorder.format import (
     ABSENT,
     CANONICAL_CODEBOOK,

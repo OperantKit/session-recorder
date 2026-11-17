@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from experiment_core import ResponseEvent
 
-from session_recorder import OklSink, SessionMeta, iter_records, read_log
+from session_recorder import OklSink, ResponseEvent, SessionMeta, iter_records, read_log
 from session_recorder.format import HEADER_TERMINATOR, MAGIC
 
 

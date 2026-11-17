@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Final
 
-from experiment_core import (
+from .events import (
     ComponentChangeEvent,
     ReinforcerEndEvent,
     ReinforcerStartEvent,
@@ -65,7 +65,13 @@ EVENT_TYPE_COMPONENT_CHANGE: Final = "component_change"
 EVENT_TYPE_PHASE_ENTER: Final = "phase_enter"
 EVENT_TYPE_PHASE_EXIT: Final = "phase_exit"
 
+EVENT_TYPE_STIMULUS_ON: Final = "stimulus_on"
+EVENT_TYPE_STIMULUS_OFF: Final = "stimulus_off"
+
 PHASE_RECORD_TYPES: Final = frozenset({EVENT_TYPE_PHASE_ENTER, EVENT_TYPE_PHASE_EXIT})
+# Stimulus presentations name no theory's role; they have no
+# SessionEvent counterpart and stay in ``SessionLog.raw_records``.
+STIMULUS_RECORD_TYPES: Final = frozenset({EVENT_TYPE_STIMULUS_ON, EVENT_TYPE_STIMULUS_OFF})
 
 
 @dataclass(frozen=True)
@@ -110,6 +116,12 @@ CANONICAL_CODEBOOK: Final[dict[str, tuple[Field, ...]]] = {
     ),
     EVENT_TYPE_PHASE_EXIT: (
         Field("label", "str", False),
+    ),
+    EVENT_TYPE_STIMULUS_ON: (
+        Field("stimulus", "str", False),
+    ),
+    EVENT_TYPE_STIMULUS_OFF: (
+        Field("stimulus", "str", False),
     ),
 }
 
@@ -233,7 +245,7 @@ def write_header(
     session_name, clock_type, session_start:
         Required producer-supplied identity.
     subject_id, replication_index, experiment_name, protocol_id, task_file_hash:
-        Optional :class:`experiment_core.SessionMeta` fields. Each is
+        Optional :class:`session_recorder.SessionMeta` fields. Each is
         emitted as a top-level ``# key = value`` line when not ``None``.
     wall_clock_start:
         Optional timezone-aware datetime; serialised as an ISO 8601
@@ -313,7 +325,7 @@ _RECOGNISED_TOP_KEYS: Final = frozenset(
 class ParsedHeader:
     """Result of :func:`parse_header`.
 
-    The fields mirror :class:`experiment_core.SessionMeta` so a
+    The fields mirror :class:`session_recorder.SessionMeta` so a
     consumer can do ``SessionMeta(**parsed.as_session_meta_kwargs())``
     or call :meth:`session_meta` directly.
     """
@@ -332,7 +344,7 @@ class ParsedHeader:
     codebook: dict[str, tuple[Field, ...]]
 
     def session_meta(self) -> SessionMeta:
-        """Build a :class:`experiment_core.SessionMeta` from the parsed
+        """Build a :class:`session_recorder.SessionMeta` from the parsed
         header. Note that ``timestamp`` on ``SessionMeta`` corresponds
         to ``session_start`` here."""
         return SessionMeta(
@@ -598,7 +610,11 @@ def encode_event(event: SessionEvent) -> str:
             EVENT_TYPE_COMPONENT_CHANGE,
             {"from": event.from_component, "to": event.to_component},
         )
-    raise TypeError(f"unknown session event type: {type(event).__name__}")
+    hint = ""
+    if type(event).__module__.startswith("experiment_core"):
+        # experiment-core < 0.2 defined its own copies of these classes.
+        hint = " (an experiment-core < 0.2 event; install experiment-core >= 0.2)"
+    raise TypeError(f"unknown session event type: {type(event).__name__}{hint}")
 
 
 def encode_phase_enter(
@@ -623,6 +639,16 @@ def encode_phase_enter(
 
 def encode_phase_exit(*, timestamp: float, label: str) -> str:
     return _encode_line(timestamp, EVENT_TYPE_PHASE_EXIT, {"label": label})
+
+
+def encode_stimulus_on(*, timestamp: float, stimulus: str) -> str:
+    """Encode the onset of a stimulus presentation (``stimulus_on``)."""
+    return _encode_line(timestamp, EVENT_TYPE_STIMULUS_ON, {"stimulus": stimulus})
+
+
+def encode_stimulus_off(*, timestamp: float, stimulus: str) -> str:
+    """Encode the offset of a stimulus presentation (``stimulus_off``)."""
+    return _encode_line(timestamp, EVENT_TYPE_STIMULUS_OFF, {"stimulus": stimulus})
 
 
 # --------------------------------------------------------------------------- #
@@ -691,10 +717,12 @@ def parse_event_line(
 
 def materialise(record: ParsedRecord) -> SessionEvent:
     """Build a :class:`SessionEvent` from a :class:`ParsedRecord` of one
-    of the four canonical event types.
+    of the five canonical event types that have a :class:`SessionEvent`
+    counterpart.
 
     Raises :class:`ValueError` for phase markers (use the dedicated
-    accessor) or unknown types.
+    accessor), stimulus presentations (read them from ``raw_records``)
+    or unknown types.
     """
     if record.type == EVENT_TYPE_RESPONSE:
         return ResponseEvent(

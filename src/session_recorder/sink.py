@@ -1,6 +1,6 @@
-"""OKL v1 :class:`~experiment_core.EventSink` implementation.
+"""OKL v1 :class:`~session_recorder.EventSink` implementation.
 
-:class:`OklSink` accepts :class:`~experiment_core.events.SessionEvent`
+:class:`OklSink` accepts :class:`~session_recorder.SessionEvent`
 instances via :meth:`emit` and serialises each to a single TSV body
 line using the OKL v1 wire format defined in
 :mod:`session_recorder.format`. Files are opened append-mode and
@@ -9,8 +9,8 @@ crashes.
 
 The header (magic line + session metadata + event codebook) must be
 written exactly once via :meth:`write_header` *before* the first
-``emit()``. Phase markers are emitted via dedicated helpers since they
-are not :class:`SessionEvent` instances.
+``emit()``. Phase markers and stimulus presentations are emitted via
+dedicated helpers since they are not :class:`SessionEvent` instances.
 """
 
 from __future__ import annotations
@@ -19,12 +19,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from experiment_core import SessionEvent, SessionMeta
-
+from .events import SessionEvent, SessionMeta
 from .format import (
     encode_event,
     encode_phase_enter,
     encode_phase_exit,
+    encode_stimulus_off,
+    encode_stimulus_on,
     write_header,
 )
 
@@ -32,7 +33,7 @@ from .format import (
 class OklSink:
     """OKL v1 file sink.
 
-    Implements the :class:`experiment_core.EventSink` Protocol: any
+    Implements the :class:`session_recorder.EventSink` Protocol: any
     caller that wants to fan out events to a file simply hands an
     :class:`OklSink` to the producer.
 
@@ -78,7 +79,7 @@ class OklSink:
         :meth:`emit`-ted body line. Refuses to write into a file that
         already has any content on disk (the header MUST be at byte 0
         per the OKL v1 spec). The keyword-only fields mirror
-        :class:`experiment_core.SessionMeta`; see also
+        :class:`session_recorder.SessionMeta`; see also
         :meth:`write_header_from_meta` for a one-shot variant.
         """
         if self._header_written:
@@ -152,10 +153,22 @@ class OklSink:
         self._require_header()
         self._append(encode_phase_exit(timestamp=timestamp, label=label))
 
+    def write_stimulus_on(self, *, timestamp: float, stimulus: str) -> None:
+        """Append a ``stimulus_on`` body line (onset of a stimulus
+        presentation, named without a theory's role)."""
+        self._require_header()
+        self._append(encode_stimulus_on(timestamp=timestamp, stimulus=stimulus))
+
+    def write_stimulus_off(self, *, timestamp: float, stimulus: str) -> None:
+        """Append a ``stimulus_off`` body line (offset of a stimulus
+        presentation)."""
+        self._require_header()
+        self._append(encode_stimulus_off(timestamp=timestamp, stimulus=stimulus))
+
     def _require_header(self) -> None:
         if not self._header_written:
             raise RuntimeError(
-                "OklSink: write_header(...) must be called before emit()/write_phase_*()"
+                "OklSink: write_header(...) must be called before emit()/write_phase_*()/write_stimulus_*()"
             )
 
     def _append(self, line: str) -> None:

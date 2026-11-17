@@ -5,13 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from experiment_core import ResponseEvent
 
 from session_recorder import (
     EVENT_TYPE_PHASE_ENTER,
     EVENT_TYPE_PHASE_EXIT,
     OklSink,
     PhaseMarker,
+    ResponseEvent,
     read_log,
 )
 from session_recorder.format import (

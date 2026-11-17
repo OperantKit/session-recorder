@@ -13,23 +13,21 @@ The log format is called OKL (OperantKitLog). Its specification is in the [Opera
 ## Installation
 
 
-Python 3.11 or newer. session-recorder is not on PyPI yet. Install it from GitHub together with the OperantKit packages it needs, without dependency resolution:
+Python 3.11 or newer. session-recorder is not on PyPI yet. Install it from GitHub. It has no dependencies, OperantKit or third-party:
 
 ```bash
-# Until the PyPI release, install from GitHub together with its OperantKit dependencies.
-G=git+https://github.com/OperantKit
-pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core $G/session-recorder
+# Until the PyPI release, install from GitHub.
+pip install git+https://github.com/OperantKit/session-recorder
 ```
 
-`--no-deps` is needed because the GitHub builds carry development version numbers that do not satisfy each other's version ranges, so plain `pip install` stops with `ResolutionImpossible`. For the same reason `pip check` reports these version mismatches; they do not affect the examples below. No third-party packages are needed.
+Writing or reading a log does not pull in a session engine: the record types and the `EventSink` protocol are defined here, and [experiment-core](https://github.com/OperantKit/experiment-core) re-exports them under the same names.
 
 ## Example
 
 Write a short FR 3 session (one reinforcer after the third response) to a log file and read it back:
 
 ```python
-from experiment_core import ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent
-from session_recorder import OklSink, read_log
+from session_recorder import OklSink, ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent, read_log
 
 sink = OklSink("fr3.txt")
 sink.write_header(session_name="demo", clock_type="VirtualClock", session_start=0.0,
@@ -79,9 +77,9 @@ In a real session the events come from [session-runner](https://github.com/Opera
 
 ## What is inside
 
-- **`OklSink`** writes the header once, at the start of an empty file, then one line per event. It refuses a second header and events before the header. `write_phase_enter` / `write_phase_exit` mark baseline, extinction, or test phases inside one log. It implements the `EventSink` protocol of [experiment-core](https://github.com/OperantKit/experiment-core), so any OperantKit program that emits session events can write through it.
-- **`read_log` / `iter_records`** read a log back as typed `experiment_core` events. Event types missing from the header are warned about, skipped, or raised as errors (`on_unknown="warn" | "skip" | "error"`).
-- **`session_recorder.format`** is the source-of-truth serialiser between `experiment_core.SessionEvent` and the OKL v1 wire format.
+- **`OklSink`** writes the header once, at the start of an empty file, then one line per event. It refuses a second header and events before the header. `write_phase_enter` / `write_phase_exit` mark baseline, extinction, or test phases inside one log. `write_stimulus_on` / `write_stimulus_off` record the onset and offset of a stimulus without naming the role it plays in any theory (for example the CS and the US of a delay-conditioning trial). It implements the `EventSink` protocol defined in this package, so any OperantKit program that emits session events can write through it.
+- **`read_log` / `iter_records`** read a log back as typed events (`ResponseEvent`, `ReinforcerStartEvent`, ...). Stimulus presentations stay in `raw_records`. Event types missing from the header are warned about, skipped, or raised as errors (`on_unknown="warn" | "skip" | "error"`).
+- **`session_recorder.format`** is the source-of-truth serialiser between `SessionEvent` and the OKL v1 wire format.
 - **`session_recorder.medpc`** converts MED-PC IV / V data files (FORMAT 1 Annotated, FORMAT 4 Stripped with Variable Identification) to OKL logs.
 - **[Format reference](docs/en/format.md):** session-recorder owns the canonical wire format for session event persistence; this page is its language-agnostic schema reference.
 
@@ -123,8 +121,7 @@ Every source event becomes one line or is counted as unmapped (`medpc.unmapped_c
 ```bash
 git clone https://github.com/OperantKit/session-recorder && cd session-recorder
 python -m venv .venv
-G=git+https://github.com/OperantKit
-.venv/bin/python -m pip install --no-deps $G/contingency-dsl-py $G/contingency-py $G/experiment-core -e .
+.venv/bin/python -m pip install -e .
 .venv/bin/python -m pip install pytest pytest-cov
 .venv/bin/pytest
 ```
