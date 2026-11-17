@@ -1,8 +1,8 @@
 # OKL v1 — OperantKitLog v1
 
 本ドキュメントは `session-recorder` が読み書きする wire format の
-**正典仕様** である。**言語非依存**: 任意の実装（Python / Rust /
-TypeScript / ...）はこのスキーマにバイト単位で従うこと。
+**正典仕様** である。**言語非依存**: 任意の実装 (Python / Rust /
+TypeScript / ...) はこのスキーマにバイト単位で従うこと。
 
 ## なぜ新フォーマットか
 
@@ -12,14 +12,14 @@ TypeScript / ...）はこのスキーマにバイト単位で従うこと。
 
 - **ベンチ研究者** — 実験中に Notepad / `less` / `grep` で開く
 - **パイプライン開発者** — Python / Rust の reader を書く
-  （`session-analyzer`, `aba-advisor`, `session-visualizer` ほか）
+  (`session-analyzer`, `aba-advisor`, `session-visualizer` ほか)
 - **HIL ベンチエンジニア** — ms 解像度の event を hot path で append。
   クラッシュ後の torn-write を検知できる必要がある
 
 OKL v1 は JSONL に対して **人間可読性**・**素ツールでの開封しやすさ**
-（Windows クリーンインストール環境でも `.txt` は Notepad で即開ける）・
-**schema 進化と自己記述性**（codebook をファイル header に内蔵）で勝ち、
-代償として 1 行あたりのわずかな冗長コストを払う（gzip でほぼ消える）。
+(Windows クリーンインストール環境でも `.txt` は Notepad で即開ける)・
+**schema 進化と自己記述性**(codebook をファイル header に内蔵) で勝ち、
+代償として 1 行あたりのわずかな冗長コストを払う (gzip でほぼ消える)。
 
 ## ファイル構造
 
@@ -42,8 +42,8 @@ Header に含めるもの:
 
 - `# session_name = "<文字列>"` — 必須。生成側ラベル
 - `# clock_type = "<文字列>"` — 必須。clock 識別子
-- `# session_start = <数値>` — 必須。session 開始時刻（生成側時計の秒）
-- 任意の top-level key（`session_recorder.SessionMeta` をミラー）:
+- `# session_start = <数値>` — 必須。session 開始時刻 (生成側時計の秒)
+- 任意の top-level key (`session_recorder.SessionMeta` をミラー):
   - `# subject_id = "<str>"`
   - `# replication_index = <int>`
   - `# experiment_name = "<str>"`
@@ -53,15 +53,15 @@ Header に含めるもの:
 - 任意の `# notes:` ブロック。続けて `#   "<note>"` を並べる。
   実験者の事後注釈
 - 任意の `# meta:` ブロック。続けて `#   <key> = <value>` を並べる。
-  自由形式の追加 metadata。key にはドットを許容（namespace 用、例
-  `subject.weight_g = 320`）
+  自由形式の追加 metadata。key にはドットを許容 (namespace 用、例
+  `subject.weight_g = 320`)
 - 必須の `# events:` ブロック。続けて `#   <type-name>          : <field>...` を
   並べ、このファイルが含みうる event 型と各型の positional payload 列を
   宣言する **codebook**
 
 未知の top-level key を見た reader は、ファイルが round-trip する形で
 `metadata` 配下に保存し、warning を 1 度出すこと。これにより spec 拡張で
-新しい top-level key を追加しても古い reader は壊れない（forward-compat）。
+新しい top-level key を追加しても古い reader は壊れない (forward-compat)。
 
 Header の値は TOML 基本リテラルを使う:
 
@@ -83,7 +83,7 @@ optional フィールド。optional 値が欠損のときは body で単独の `
 
 ### Canonical codebook
 
-writer は最低限以下を codebook に出力すること（追加は許容）:
+writer は最低限以下を codebook に出力すること (追加は許容):
 
 ```
 # events:
@@ -117,17 +117,17 @@ Body は純 TSV。JSON もクオートも、TSV の流儀以外のエスケー�
 
 | リテラル | wire 上の表現 |
 |---|---|
-| `\`（バックスラッシュ） | `\\` |
-| `\t`（タブ） | `\t` |
-| `\n`（改行） | `\n` |
+| `\` (バックスラッシュ) | `\\` |
+| `\t` (タブ) | `\t` |
+| `\n` (改行) | `\n` |
 | `\r` | `\r` |
 | 単独の `-` | `\-` |
 
 単独の `-` は「欠損」を表し、codebook が optional と宣言した列でのみ
 許容される。文字値として 1 文字 `-` を書きたいときは `\-` にエスケープ。
 
-未定義のエスケープ列（例: `\q`）を見た reader はそのまま 2 文字 `\q` として
-保存しなければならない（forward-compat）。これにより将来仕様で新しい
+未定義のエスケープ列 (例: `\q`) を見た reader はそのまま 2 文字 `\q` として
+保存しなければならない (forward-compat)。これにより将来仕様で新しい
 escape を追加しても古い reader は壊れない。producer は逆にこの寛容性に
 依存して非標準のエンコードを密輸してはならない。
 
@@ -179,8 +179,8 @@ reader は最後の完全な行までを正典として扱い、torn 行を捨�
 ### 新しい event 型を追加する
 
 producer は `# events:` codebook に新しい行を追加する。新型を知らない
-reader はリファレンス実装の `on_unknown` ポリシー（`"warn"` /
-`"skip"` / `"error"`）に従う。default の `"warn"` は未知行を skip し
+reader はリファレンス実装の `on_unknown` ポリシー (`"warn"` /
+`"skip"` / `"error"`) に従う。default の `"warn"` は未知行を skip し
 1 度だけ警告する。
 
 ### 既存型を削除・改名する

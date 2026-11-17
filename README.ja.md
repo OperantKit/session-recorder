@@ -2,13 +2,13 @@
 
 :gb: [English README](README.md)
 
-session-recorder は、オペラント実験のセッションで起きた出来事（反応・強化子の提示・状態の変化・フェイズ）をプレーンテキストのログファイルに保存し、そのファイルを Python に読み戻します。[OperantKit](https://github.com/OperantKit) でセッションを走らせ、人もプログラムも読めるセッション記録を残したい人のためのパッケージです。OperantKit の中では、セッションを走らせるプログラム（[session-runner](https://github.com/OperantKit/session-runner)）と分析（[session-analyzer](https://github.com/OperantKit/session-analyzer)）の間に位置します。
+session-recorder は、オペラント実験のセッションで起きた出来事 (反応・強化子の提示・状態の変化・フェイズ) をプレーンテキストのログファイルに保存し、そのファイルを Python に読み戻します。[OperantKit](https://github.com/OperantKit) でセッションを走らせ、人もプログラムも読めるセッション記録を残したい人のためのパッケージです。OperantKit の中では、セッションを走らせるプログラム ([session-runner](https://github.com/OperantKit/session-runner)) と分析 ([session-analyzer](https://github.com/OperantKit/session-analyzer)) の間に位置します。
 
 - **1 セッション 1 ファイルで、テキストエディタで読めます。** 短いヘッダの後に、1 つの出来事につきタブ区切りの 1 行が続きます。
 - **ファイルが自分自身を説明します。** ヘッダにセッション名・時計・メモが入り、出来事の種類ごとに型付きの列が宣言されます。
 - **過去の MED-PC のデータも合流できます。** MED-PC IV / V のデータファイルを同じ形式に変換できます。
 
-ログの形式は OKL（OperantKitLog）と呼びます。仕様は [OperantKitLog](https://github.com/OperantKit/OperantKitLog) リポジトリにあります。AI コーディングエージェント向けの案内は [AGENTS.md](AGENTS.md) にあります。
+ログの形式は OKL (OperantKitLog) と呼びます。仕様は [OperantKitLog](https://github.com/OperantKit/OperantKitLog) リポジトリにあります。AI コーディングエージェント向けの案内は [AGENTS.md](AGENTS.md) にあります。
 
 ## インストール
 
@@ -24,7 +24,7 @@ pip install git+https://github.com/OperantKit/session-recorder
 
 ## 例
 
-短い FR 3 のセッション（3 回目の反応の後に強化子を 1 回提示）をログファイルに書き、読み戻します。
+短い FR 3 のセッション (3 回目の反応の後に強化子を 1 回提示) をログファイルに書き、読み戻します。
 
 ```python
 from session_recorder import OklSink, ReinforcerEndEvent, ReinforcerStartEvent, ResponseEvent, read_log
@@ -67,7 +67,7 @@ print(log.meta.session_name, log.meta.metadata, [type(e).__name__ for e in log.e
 6.0	reinforcer_end	1	-
 ```
 
-本体の各行は、秒単位の時刻・出来事の種類・ヘッダがその種類に宣言した列の順に並びます。`-` は省略可能な列が空であることを示します（ここでは、反応が行われたレバーやキー＝オペランダムの指定と、機器が自分の時計で反応に付けた時刻 `device_time` がありません。先頭の列は常にセッションの時刻です）。標準のコマンドがそのまま使えます。
+本体の各行は、秒単位の時刻・出来事の種類・ヘッダがその種類に宣言した列の順に並びます。`-` は省略可能な列が空であることを示します (ここでは、反応が行われたレバーやキー＝オペランダムの指定と、機器が自分の時計で反応に付けた時刻 `device_time` がありません。先頭の列は常にセッションの時刻です)。標準のコマンドがそのまま使えます。
 
 ```bash
 grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3
@@ -77,15 +77,15 @@ grep -v '^#' fr3.txt | awk -F'\t' '$2 == "response"' | wc -l   # 3
 
 ## 中身
 
-- **`OklSink`** は、空のファイルの先頭にヘッダを 1 度だけ書き、その後は出来事 1 つにつき 1 行を書きます。2 度目のヘッダと、ヘッダより前の出来事は受け付けません。`write_phase_enter` / `write_phase_exit` で、ベースライン・消去・テストなどのフェイズを 1 つのログの中に印せます。`write_stimulus_on` / `write_stimulus_off` は、刺激の提示の始まりと終わりを、どの理論での役割（遅延条件づけの CS や US など）も名指さずに記録します。このパッケージが定める `EventSink` プロトコルを実装しているため、セッションの出来事を出す OperantKit のプログラムはどれもこれを通して書けます。
-- **`read_log` / `iter_records`** は、ログを型付きの出来事（`ResponseEvent`・`ReinforcerStartEvent` など）として読み戻します。刺激の提示は `raw_records` に残ります。ヘッダに無い種類の出来事は、警告・読み飛ばし・エラーのいずれかで扱います（`on_unknown="warn" | "skip" | "error"`）。
+- **`OklSink`** は、空のファイルの先頭にヘッダを 1 度だけ書き、その後は出来事 1 つにつき 1 行を書きます。2 度目のヘッダと、ヘッダより前の出来事は受け付けません。`write_phase_enter` / `write_phase_exit` で、ベースライン・消去・テストなどのフェイズを 1 つのログの中に印せます。`write_stimulus_on` / `write_stimulus_off` は、刺激の提示の始まりと終わりを、どの理論での役割 (遅延条件づけの CS や US など) も名指さずに記録します。このパッケージが定める `EventSink` プロトコルを実装しているため、セッションの出来事を出す OperantKit のプログラムはどれもこれを通して書けます。
+- **`read_log` / `iter_records`** は、ログを型付きの出来事 (`ResponseEvent`・`ReinforcerStartEvent` など) として読み戻します。刺激の提示は `raw_records` に残ります。ヘッダに無い種類の出来事は、警告・読み飛ばし・エラーのいずれかで扱います (`on_unknown="warn" | "skip" | "error"`)。
 - **`session_recorder.format`** は、`SessionEvent` と OKL v1 の wire format の間の正典のシリアライザです。
-- **`session_recorder.medpc`** は、MED-PC IV / V のデータファイル（FORMAT 1 Annotated、FORMAT 4 Stripped with Variable Identification）を OKL のログに変換します。
+- **`session_recorder.medpc`** は、MED-PC IV / V のデータファイル (FORMAT 1 Annotated、FORMAT 4 Stripped with Variable Identification) を OKL のログに変換します。
 - **[形式の資料](docs/ja/format.md):** session-recorder はセッションの出来事を保存するための正典の wire format を持ちます。このページはその言語に依存しないスキーマの資料です。
 
 ### MED-PC のデータを変換する
 
-MED-PC のデータファイルには、出来事のコードが何を意味するかが書かれていません。それを決めているのは、ファイルを書いた MSN プログラムです。そのため `medpc_to_okl` は、`session_recorder.medpc.PROTOCOLS` のうちの 1 つをプロトコルとして受け取ります。組み込みの 4 つのプロトコル（`bernardy-vdrl`、`bernardy-training`、`sosa-inh`、`mccutcheon-prpr`）は、3 つの公開データセット（Bernardy, 2025; McCutcheon, 2022; Sosa et al., 2026）の公開されたプログラムに対応しています。Annotated 形式のファイルは `MSN:` の行からプロトコルを判定します。FORMAT 4 のファイルにはプログラム名が無いため、`protocol=` の指定が必要です。
+MED-PC のデータファイルには、出来事のコードが何を意味するかが書かれていません。それを決めているのは、ファイルを書いた MSN プログラムです。そのため `medpc_to_okl` は、`session_recorder.medpc.PROTOCOLS` のうちの 1 つをプロトコルとして受け取ります。組み込みの 4 つのプロトコル (`bernardy-vdrl`、`bernardy-training`、`sosa-inh`、`mccutcheon-prpr`) は、3 つの公開データセット (Bernardy, 2025; McCutcheon, 2022; Sosa et al., 2026) の公開されたプログラムに対応しています。Annotated 形式のファイルは `MSN:` の行からプロトコルを判定します。FORMAT 4 のファイルにはプログラム名が無いため、`protocol=` の指定が必要です。
 
 ```python
 from pathlib import Path
@@ -108,7 +108,7 @@ print(log.meta.metadata["schedule.spec_dsl"], [type(e).__name__ for e in log.eve
 # VI 30s ['StateChangeEvent', 'ResponseEvent', 'ReinforcerStartEvent', 'StateChangeEvent']
 ```
 
-元のファイルの出来事はすべて、1 行に書かれるか、対応なし（ヘッダの `medpc.unmapped_codes`）として数えられます。ファイルに記録されていないセッション開始など、変換の側で足した行は `medpc.synthesised_lines` に数えられます。別の MSN プログラムを読むには、`MedPcSession` を `Converted` に変える関数を書き、`Protocol` として登録してください。
+元のファイルの出来事はすべて、1 行に書かれるか、対応なし (ヘッダの `medpc.unmapped_codes`) として数えられます。ファイルに記録されていないセッション開始など、変換の側で足した行は `medpc.synthesised_lines` に数えられます。別の MSN プログラムを読むには、`MedPcSession` を `Converted` に変える関数を書き、`Protocol` として登録してください。
 
 ## 制限
 
